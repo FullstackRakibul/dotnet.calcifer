@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<PackageType>Template</PackageType>
+		<PackageId>dotnet.calcifer</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Rakibul</Authors>
+		<Description>Secure .NET 8 API with JWT And Role Management</Description>
+		<PackageTags>dotnet-new;webapi;jwt;identity;microservice</PackageTags>
+		<TargetFramework>net8.0</TargetFramework>
+		<IncludeContentInPack>true</IncludeContentInPack>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<NoBuild>true</NoBuild>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<Content Include="src\**\*" />
+		<Content Include=".template.config\**\*" />
+	</ItemGroup>
+	<ItemGroup>
+		<Folder Include="Migrations\" />
+	</ItemGroup>
+</Project>

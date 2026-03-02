@@ -1,0 +1,14 @@
+{
+	"$schema": "http://json.schemastore.org/template",
+	"author": "Rakibul",
+	"classifications": [ "Web", "API", "JWT", "Microservice" ],
+	"identity": "dotnet.calcifer",
+	"name": "Calcifer Secure Microservice API",
+	"shortName": "dotnet.calcifer",
+	"sourceName": "Calcifer.Api",
+	"preferNameDirectory": true,
+	"tags": {
+		"language": "C#",
+		"type": "project"
+	}
+}
