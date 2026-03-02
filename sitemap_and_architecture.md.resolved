@@ -1,0 +1,321 @@
+# dotnet.calcifer — Site Map & Technical Architecture
+
+> A secure .NET 8 Web API template with JWT authentication, ASP.NET Identity, and role-based authorization.
+> **Author:** Rakibul | **Database:** SQL Server | **API Docs:** Swagger/OpenAPI
+
+---
+
+## 📁 Project Directory Map
+
+```
+dotnet.calcifer/
+├── dotnet.calcifer.csproj          ← NuGet template packaging project
+├── README.md
+└── src/
+    └── Calcifer.Api/
+        ├── Calcifer.Api.csproj     ← Outer wrapper (net10.0, unused scaffold)
+        ├── Program.cs              ← Outer minimal API (weather demo, unused)
+        ├── butterBun.sln
+        ├── dotnet.calcifer.sln
+        └── v1/                     ★ THE REAL APPLICATION ★
+            ├── v1.csproj           ← net8.0, primary build target
+            ├── Program.cs          ← App entry point & pipeline config
+            ├── appsettings.json    ← DB connection + JWT secrets
+            │
+            ├── AuthHandler/
+            │   ├── Claims/
+            │   │   └── CustomClaims.cs          ← Custom claim type constants
+            │   ├── Configuration/
+            │   │   └── JwtSettings.cs           ← JWT config POCO
+            │   ├── Filters/
+            │   │   └── AuthorizationFilter.cs   ← Minimal API auth filter
+            │   └── MinimalApis/
+            │       └── IdentityApi.cs           ← Identity minimal API endpoints
+            │
+            ├── Controllers/
+            │   ├── AuthController/
+            │   │   ├── AuthController.cs        ← Register / Login / Logout
+            │   │   └── RoleController.cs        ← Create Role / Assign Role
+            │   └── HomeController.cs            ← Public data (authorized)
+            │
+            ├── DbContexts/
+            │   ├── CalciferAppDbContext.cs       ← EF Core IdentityDbContext
+            │   ├── AuthModels/
+            │   │   ├── ApplicationUser.cs        ← Extended IdentityUser
+            │   │   └── ApplicationRole.cs        ← Extended IdentityRole
+            │   ├── Models/
+            │   │   └── PublicData.cs             ← Sample domain model
+            │   ├── Common/
+            │   │   └── TableOperationDetails.cs  ← Audit fields base class
+            │   ├── Enum/
+            │   │   └── CommonStatusEnum.cs       ← Active/Inactive/Deleted
+            │   └── MinimalApis/
+            │       └── PublicApis/
+            │           └── PublicCRUDApis.cs     ← Public data minimal API
+            │
+            ├── DependencyContainer/
+            │   └── DependencyInversion.cs        ← All DI registrations
+            │
+            ├── DTOs/
+            │   ├── ApiResponseDto.cs             ← Generic response wrapper
+            │   ├── PublicDataDTO.cs               ← Public data transfer obj
+            │   ├── ClientTypeDto.cs               ← Client type create/update
+            │   ├── AuthDTO/
+            │   │   ├── RegisterRequestDto.cs
+            │   │   ├── LoginRequestDto.cs
+            │   │   ├── CreateRoleRequestDto.cs
+            │   │   └── AssignRoleRequestDto.cs
+            │   ├── CommonDTO/
+            │   │   └── CommonStatusDto.cs
+            │   ├── HelperDTO/
+            │   │   └── ApiResponseDto.cs         ← Duplicate response DTO
+            │   └── ModelsDTO/
+            │       └── PublicDto.cs
+            │
+            ├── Infrastructure/
+            │   └── DatabaseInitializer.cs        ← Auto-migrate on startup
+            │
+            ├── Interface/
+            │   └── Common/
+            │       └── IPublicInterface.cs       ← Public data abstraction
+            │
+            ├── Middleware/
+            │   └── MiddlewareDependencyInversion.cs ← Pipeline + Minimal API router
+            │
+            └── Services/
+                ├── AuthService/
+                │   ├── AuthService.cs            ← Register & Login logic
+                │   ├── RoleService.cs            ← Role CRUD + assignment
+                │   └── TokenService.cs           ← JWT token generation
+                └── PublicService.cs              ← IPublicInterface impl
+```
+
+---
+
+## 🌐 API Endpoint Map (Site Map)
+
+### MVC Controllers (`MapControllers`)
+
+| Method | Route | Controller | Auth | Description |
+|--------|-------|------------|------|-------------|
+| `POST` | `/api/v1/Auth/register` | [AuthController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/AuthController.cs#12-52) | 🔓 Open | Register a new user account |
+| `POST` | `/api/v1/Auth/login` | [AuthController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/AuthController.cs#12-52) | 🔓 Open | Login & receive JWT token |
+| `POST` | `/api/v1/Auth/logout` | [AuthController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/AuthController.cs#12-52) | 🔒 Bearer | Sign out current user |
+| `POST` | `/api/Role/create` | [RoleController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/RoleController.cs#9-35) | 🔓 Open* | Create a new role |
+| `POST` | `/api/Role/assign` | [RoleController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/RoleController.cs#9-35) | 🔓 Open* | Assign role to a user |
+| `GET`  | `/` | [HomeController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/HomeController.cs#13-45) | 🔒 Bearer | Get public data |
+
+> \* [RoleController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/RoleController.cs#9-35) has `[Authorize(Roles = "Admin")]` **commented out** — currently open.
+
+### Minimal APIs ([ApplicationMinimalApis](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Middleware/MiddlewareDependencyInversion.cs#20-54))
+
+All minimal API endpoints are grouped under `/api/v1` with the [AuthorizationFilter](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/AuthHandler/Filters/AuthorizationFilter.cs#9-30) applied:
+
+| Method | Route | Group | Auth | Description |
+|--------|-------|-------|------|-------------|
+| `GET` | `/api/v1/identity/identity/user/{id}` | Identity | 🔒 AdminPolicy | Get user by ID |
+| `GET` | `/api/v1/identity/identity/roles/{id}` | Identity | 🔒 Bearer | Get roles for user |
+| `GET` | `/api/v1/public/` | Public | 🔒 Filter | Get public data |
+
+---
+
+## 🏗️ Architecture & Developer Interaction System
+
+### Layered Architecture
+
+```mermaid
+graph TD
+    subgraph Client["🖥️ Client (Frontend)"]
+        FE["Vue 3 + Pinia<br/>localhost:5173"]
+    end
+
+    subgraph Pipeline["ASP.NET Middleware Pipeline"]
+        CORS["CORS Policy"]
+        AUTH["UseAuthentication"]
+        AUTHZ["UseAuthorization"]
+    end
+
+    subgraph Endpoints["API Endpoints"]
+        MVC["MVC Controllers<br/>(AuthController, RoleController, HomeController)"]
+        MIN["Minimal APIs<br/>(IdentityApi, PublicCRUDApis)"]
+    end
+
+    subgraph Services["Business Logic"]
+        AS["AuthService"]
+        RS["RoleService"]
+        TS["TokenService"]
+        PS["PublicService"]
+    end
+
+    subgraph Data["Data Layer"]
+        CTX["CalciferAppDbContext<br/>(IdentityDbContext)"]
+        SQL["SQL Server<br/>CalciferDB"]
+    end
+
+    FE -->|HTTP + JWT| CORS --> AUTH --> AUTHZ
+    AUTHZ --> MVC
+    AUTHZ --> MIN
+    MVC --> AS & RS & PS
+    MIN --> PS
+    AS --> TS
+    AS & RS --> CTX
+    CTX --> SQL
+```
+
+### Authentication & Authorization Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as API Gateway
+    participant Auth as AuthController
+    participant Svc as AuthService
+    participant Token as TokenService
+    participant DB as SQL Server
+
+    C->>API: POST /api/v1/Auth/register
+    API->>Auth: RegisterRequestDto
+    Auth->>Svc: RegisterAsync(dto)
+    Svc->>DB: UserManager.CreateAsync()
+    Svc->>Token: GenerateJwtToken(user)
+    Token->>DB: GetRolesAsync(user)
+    Token-->>Svc: JWT string
+    Svc-->>Auth: (true, token, null)
+    Auth-->>C: 200 { access_token }
+
+    C->>API: POST /api/v1/Auth/login
+    API->>Auth: LoginRequestDto
+    Auth->>Svc: LoginAsync(email, password)
+    Svc->>DB: FindByEmailAsync + PasswordSignIn
+    Svc->>Token: GenerateJwtToken(user)
+    Token-->>Svc: JWT string
+    Svc-->>Auth: (true, token, "")
+    Auth-->>C: 200 { access_token }
+
+    C->>API: GET /api/v1/public/ (Bearer token)
+    API->>API: Validate JWT (Issuer, Audience, Signing Key)
+    API->>API: AuthorizationFilter check
+    API-->>C: 200 { status, message, data }
+```
+
+---
+
+## ⚙️ Technology Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| **Runtime** | .NET | 8.0 |
+| **Framework** | ASP.NET Core Web API | 8.0 |
+| **Authentication** | JWT Bearer (HMAC-SHA256) | 8.0.1 |
+| **Identity** | ASP.NET Core Identity | 8.0.1 |
+| **ORM** | Entity Framework Core | 8.0.1 |
+| **Database** | SQL Server (LocalDB/Express) | — |
+| **API Docs** | Swashbuckle (Swagger) | 6.4.0 |
+| **API Patterns** | MVC Controllers + Minimal APIs | Hybrid |
+| **Frontend (CORS)** | Vue 3 @ `localhost:5173` | — |
+
+---
+
+## 🔧 Developer Interaction System (DI & Config)
+
+### Dependency Injection Registration
+
+All services are registered in [DependencyInversion.cs](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DependencyContainer/DependencyInversion.cs):
+
+| Registration | Lifetime | Purpose |
+|-------------|----------|---------|
+| [IPublicInterface](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Interface/Common/IPublicInterface.cs#3-8) → [PublicService](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Services/PublicService.cs#8-15) | Scoped | Public data abstraction |
+| [TokenService](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Services/AuthService/TokenService.cs#12-49) | Scoped | JWT token generation |
+| [AuthService](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Services/AuthService/AuthService.cs#9-79) | Scoped | Register & login logic |
+| `Identity<ApplicationUser, ApplicationRole>` | (Identity defaults) | User + role management |
+| [CalciferAppDbContext](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DbContexts/CalciferAppDbContext.cs#11-35) | Scoped | EF Core database context |
+| [JwtSettings](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/AuthHandler/Configuration/JwtSettings.cs#3-10) | Singleton (Options) | JWT configuration binding |
+| `IHttpContextAccessor` | Singleton | HTTP context access |
+
+### Authorization Policies
+
+| Policy | Requirement |
+|--------|------------|
+| `AdminPolicy` | Role = "Admin" |
+| `ManagerPolicy` | Role = "Manager" |
+| `OfficerPolicy` | Role = "Officer" |
+
+### JWT Token Claims
+
+| Claim | Source |
+|-------|--------|
+| `ID` | `ApplicationUser.Id` |
+| `Name` | `ApplicationUser.UserName` |
+| `Email` | `ApplicationUser.Email` |
+| `role` (multiple) | `UserManager.GetRolesAsync()` |
+
+### Configuration ([appsettings.json](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/appsettings.json))
+
+| Key | Value |
+|-----|-------|
+| `ConnectionStrings:CalciferDBContext` | `Server=localhost;Database=CalciferDB;...` |
+| `JwtSettings:Issuer` | `calcifer.api` |
+| `JwtSettings:Audience` | `calcifer.client` |
+| `JwtSettings:ExpirationInMinutes` | `60` |
+
+---
+
+## 🗄️ Database Schema (Entity Models)
+
+### [ApplicationUser](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DbContexts/AuthModels/ApplicationUser.cs#7-25) (extends `IdentityUser`)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `AppUserGuid` | `Guid` | Auto-generated |
+| `EmployeeId` | `string(50)` | Required, unique index |
+| `Name` | `string` | Display name |
+| `Region` | `string?` | Optional |
+| [Status](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DTOs/CommonDTO/CommonStatusDto.cs#3-12) | `int` | Active/Inactive |
+| `CreatedAt` / `UpdatedAt` | `DateTime?` | Timestamps |
+| `CreateAt` / `UpdateAt` / `DeleteAt` | `DateTime` | Audit dates |
+| `UpdateBy` / `DeleteBy` | `string?` | Audit actors |
+| `IsDeleted` | `bool` | Soft delete flag |
+
+### [ApplicationRole](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DbContexts/AuthModels/ApplicationRole.cs#5-10) (extends `IdentityRole`)
+
+| Field | Type |
+|-------|------|
+| `Description` | `string?` |
+| [Status](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DTOs/CommonDTO/CommonStatusDto.cs#3-12) | `int?` |
+
+### [PublicData](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DbContexts/Models/PublicData.cs#5-12)
+
+| Field | Type |
+|-------|------|
+| `Guid` (PK) | `Guid` |
+| `Name` | `string` |
+| `Description` | `string?` |
+
+### [TableOperationDetails](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DbContexts/Common/TableOperationDetails.cs#3-16) (base class, not mapped)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `StatusId` | `int` | Status flag |
+| `CreatedBy` / `UpdatedBy` / `DeletedBy` | `string?` | Audit actors |
+| `CreatedAt` | `DateTime` | Default UTC+6 |
+| `UpdatedAt` / `DeletedAt` | `DateTime?` | — |
+| `IsDeleted` | `bool` | Soft delete |
+
+---
+
+## 🚨 Notes & Observations
+
+> [!WARNING]
+> **[RoleController](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Controllers/AuthController/RoleController.cs#9-35) authorization is commented out** — the `[Authorize(Roles = "Admin")]` attribute on line 11 is disabled. Both `POST /api/Role/create` and `POST /api/Role/assign` are currently open to anyone.
+
+> [!NOTE]
+> **Duplicate [ApiResponseDto](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/DTOs/HelperDTO/ApiResponseDto.cs#3-9)** — exists in both `v1.DTOs` and `v1.DTOs.HelperDTO` namespaces with identical structure. The minimal APIs use the `HelperDTO` version while controllers use the `DTOs` version.
+
+> [!NOTE]
+> **Dead code in `AuthController.Login`** — there is an unreachable `return Ok();` on line 40 after the ternary return on line 39.
+
+> [!NOTE]
+> **Dual project structure** — [Calcifer.Api.csproj](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/Calcifer.Api.csproj) (net10.0) wraps the actual [v1/v1.csproj](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/v1.csproj) (net8.0). The outer project contains only a boilerplate weather forecast endpoint and is not the running application.
+
+> [!TIP]
+> **Startup sequence**: [Program.cs](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/Program.cs) → `DependencyInversion.RegisterServices()` → EF Core configuration → Identity + JWT setup → CORS → Build → Seed DB via `DatabaseInitializer.Initialize()` → Swagger → `MapControllers()` + [ApplicationMinimalApis()](file:///d:/alpha/dotnet/dotnet.calcifer/src/Calcifer.Api/v1/Middleware/MiddlewareDependencyInversion.cs#20-54) → Run.

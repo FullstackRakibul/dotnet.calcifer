@@ -1,0 +1,71 @@
+# =========================================
+# Visual Studio / IDEs
+# =========================================
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.vssscc
+
+# =========================================
+# Build & Publish Artifacts
+# =========================================
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Pp]ublish/
+*.nupkg
+*.snupkg
+
+# =========================================
+# Template Specific (Optional)
+# =========================================
+# If you are testing the template generation locally, 
+# you might want to ignore the generated test folders.
+TestService/
+InventoryService/
+
+# =========================================
+# NuGet
+# =========================================
+*.nuget.props
+*.nuget.targets
+packages/
+
+# =========================================
+# Configuration & Secrets
+# =========================================
+appsettings.user.json
+appsettings.Local.json
+.env
+*.pfx
+*.publishsettings
+
+# =========================================
+# OS Generated Files
+# =========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================================
+# Frontend / Node (For Vue 3 + Pinia)
+# =========================================
+node_modules/
+dist/
+dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache

@@ -2,7 +2,7 @@
 	"$schema": "http://json.schemastore.org/template",
 	"author": "Rakibul",
 	"classifications": [ "Web", "API", "JWT", "Microservice" ],
-	"identity": "dotnet.calcifer",
+	"identity": "Dotnet.Calcifer.Template",
 	"name": "Calcifer Secure Microservice API",
 	"shortName": "dotnet.calcifer",
 	"sourceName": "Calcifer.Api",
