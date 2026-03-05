@@ -1,6 +1,6 @@
 # dotnet.calcifer 🚀
 
-[![NuGet version](https://badge.fury.io/nu/Calcifer.Microservice.Api.Template.svg)](https://badge.fury.io/nu/Calcifer.Microservice.Api.Template)
+[![NuGet version](https://badge.fury.io/nu/Calcifer.Microservice.Api.Template.svg)](https://www.nuget.org/packages/Calcifer.Microservice.Api.Template/1.0.0-alpha.1)
 
 A professional-grade, production-ready **.NET 8 Web API Microservice Template** distributed via NuGet. Built with Clean Architecture principles, pre-configured with JWT Authentication, ASP.NET Core Identity, and Role-Based Authorization.
 
