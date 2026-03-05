@@ -12,6 +12,7 @@
 *.sln.docstates
 *.suo
 *.vssscc
+*.sln.ide/
 
 # =========================================
 # Build & Publish Artifacts
@@ -20,16 +21,11 @@
 [Oo]bj/
 [Oo]ut/
 [Pp]ublish/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
 *.nupkg
 *.snupkg
-
-# =========================================
-# Template Specific (Optional)
-# =========================================
-# If you are testing the template generation locally, 
-# you might want to ignore the generated test folders.
-TestService/
-InventoryService/
 
 # =========================================
 # NuGet
@@ -37,6 +33,15 @@ InventoryService/
 *.nuget.props
 *.nuget.targets
 packages/
+project.lock.json
+project.fragment.lock.json
+
+# =========================================
+# Template Specific
+# =========================================
+# Generated test projects from `dotnet new`
+TestService/
+InventoryService/
 
 # =========================================
 # Configuration & Secrets
@@ -44,8 +49,23 @@ packages/
 appsettings.user.json
 appsettings.Local.json
 .env
+.env.*
+!.env.example
 *.pfx
 *.publishsettings
+secrets.json
+
+# =========================================
+# .NET / MSBuild
+# =========================================
+*.cache
+*.log
+*.mdb
+*.pdb
+*.pidb
+launchSettings.user.json
+BundleArtifacts/
+MigrationBackup/
 
 # =========================================
 # OS Generated Files
@@ -57,6 +77,8 @@ appsettings.Local.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
 
 # =========================================
 # Frontend / Node (For Vue 3 + Pinia)
