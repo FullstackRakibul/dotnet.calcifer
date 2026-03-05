@@ -23,5 +23,9 @@ A professional-grade, production-ready **.NET 8 Web API Microservice Template** 
 Install the template globally on your machine via the .NET CLI:
 
 ```bash
-dotnet new install dotnet.calcifer
+dotnet new install Calcifer.Microservice.Api.Template
+```
+
+```bash
+dotnet new dotnet.calcifer -n MyProjectName
 ```
