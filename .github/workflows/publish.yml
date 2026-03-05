@@ -1,0 +1,26 @@
+name: Publish Calcifer to NuGet
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build and Pack
+        # This compiles the template and puts the .nupkg in an "out" folder
+        run: dotnet pack dotnet.calcifer.csproj -c Release -o ./out
+
+      - name: Push to NuGet
+        # This grabs any .nupkg file in the out folder and pushes it
+        run: dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
