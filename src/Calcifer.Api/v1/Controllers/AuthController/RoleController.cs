@@ -8,7 +8,7 @@ namespace Calcifer.Api.Controllers.AuthController
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "ADMINISTRATOR")]
     public class RoleController : ControllerBase
     {
         private readonly RoleService _roleService;

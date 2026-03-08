@@ -22,6 +22,7 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoBuild>true</NoBuild>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
   </PropertyGroup>
 
   <ItemGroup>

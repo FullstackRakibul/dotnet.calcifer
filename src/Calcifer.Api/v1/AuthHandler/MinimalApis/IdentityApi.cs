@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Calcifer.Api.DbContexts.AuthModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace Calcifer.Api.AuthHandler.MinimalApis
 {
@@ -11,14 +12,21 @@ namespace Calcifer.Api.AuthHandler.MinimalApis
             var group = app.MapGroup("/identity")
                            .WithTags("Identity");
 
-            group.MapGet("/identity/user/{id}", async (string id, UserManager<ApplicationUser> userManager) =>
+            group.MapGet("/user/{id}", async (string id, UserManager<ApplicationUser> userManager) =>
             {
                 var user = await userManager.FindByIdAsync(id);
                 return user != null ? Results.Ok(new { user.Id, user.Email, user.Name }) : Results.NotFound("User not found");
             })
             .RequireAuthorization("AdminPolicy");
 
-            group.MapGet("/identity/roles/{id}", async (string id, UserManager<ApplicationUser> userManager) =>
+			group.MapGet("/user", async (UserManager<ApplicationUser> userManager) =>
+			{
+				var users = await userManager.Users.Select(user=> new { user.Id, user.Email , user.Name}).ToListAsync();
+				return users.Any() ? Results.Ok(users) : Results.NotFound("No users found");
+			})
+			.RequireAuthorization();
+
+			group.MapGet("/roles/{id}", async (string id, UserManager<ApplicationUser> userManager) =>
             {
                 var user = await userManager.FindByIdAsync(id);
                 if (user == null) return Results.NotFound("User not found");
