@@ -1,6 +1,6 @@
 namespace Calcifer.Api.DbContexts.Enum
 {
-	public enum CommonStatus
+	public enum CommonStatusEnum : byte
 	{
 		Inactive = 0,
 		Active = 1,

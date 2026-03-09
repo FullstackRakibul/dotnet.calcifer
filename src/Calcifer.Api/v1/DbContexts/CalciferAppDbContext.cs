@@ -17,6 +17,7 @@ namespace Calcifer.Api.DbContexts
         }
 
         public DbSet<PublicData> PublicData { get; set; }
+        public DbSet<CommonStatus> CommonStatus { get; set; }
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationRole> ApplicationRole { get; set; }
 

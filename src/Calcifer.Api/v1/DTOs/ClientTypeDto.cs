@@ -5,13 +5,13 @@ namespace Calcifer.Api.DTOs
 		// Request DTOs
 		public class ClientTypeCreateRequest
 		{
-			public string CTypeName { get; set; }
-			public string? Remarks { get; set; }
+			public string CTypeName { get; set; } = string.Empty;
+            public string? Remarks { get; set; }
 		}
 
 		public class ClientTypeUpdateRequest
 		{
-			public string CTypeName { get; set; }
+			public string CTypeName { get; set; } = string.Empty;
 			public string? Remarks { get; set; }
 		}
 	}

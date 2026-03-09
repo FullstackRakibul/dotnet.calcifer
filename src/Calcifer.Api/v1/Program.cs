@@ -22,6 +22,13 @@ builder.Services.AddDbContext<CalciferAppDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("CalciferDBContext")));
 
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdminPolicy", policy => policy.RequireRole("SUPERADMIN"));
+    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN"));
+    options.AddPolicy("ModeratorPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN", "MODERATOR"));
+});
+
 
 // Register controllers & minimal APIs
 builder.Services.AddControllers();
@@ -91,8 +98,8 @@ using (var scope = app.Services.CreateScope())
 	var services = scope.ServiceProvider;
 	try
 	{
-		var context = services.GetRequiredService<CalciferAppDbContext>();
-		DatabaseInitializer.Initialize(context);
+		//var context = services.GetRequiredService<CalciferAppDbContext>();
+		await DatabaseInitializer.SeedAsync(services);
 	}
 	catch (Exception ex)
 	{
