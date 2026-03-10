@@ -14,7 +14,6 @@
 *.vssscc
 *.sln.ide/
 
-src/Calcifer.Api/v1/appsettings.json
 # =========================================
 # Build & Publish Artifacts
 # =========================================
@@ -22,11 +21,16 @@ src/Calcifer.Api/v1/appsettings.json
 [Oo]bj/
 [Oo]ut/
 [Pp]ublish/
+publish/
 [Dd]ebug/
 [Rr]elease/
 artifacts/
+TestResults/
+.dotnet/
 *.nupkg
 *.snupkg
+*.ilk
+*.exp
 
 # =========================================
 # NuGet
@@ -36,6 +40,7 @@ artifacts/
 packages/
 project.lock.json
 project.fragment.lock.json
+*.packages.lock.json
 
 # =========================================
 # Template Specific
@@ -47,8 +52,11 @@ InventoryService/
 # =========================================
 # Configuration & Secrets
 # =========================================
+src/Calcifer.Api/v1/appsettings.json
 appsettings.user.json
 appsettings.Local.json
+appsettings.*.json
+!appsettings.Development.json
 .env
 .env.*
 !.env.example
@@ -91,4 +99,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.eslintcache
+.eslintcache
