@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Calcifer.Api.Migrations
 {
     [DbContext(typeof(CalciferAppDbContext))]
-    [Migration("20260310090317_InitialLaunch")]
+    [Migration("20260310134455_InitialLaunch")]
     partial class InitialLaunch
     {
         /// <inheritdoc />

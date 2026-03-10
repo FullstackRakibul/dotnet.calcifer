@@ -45,8 +45,11 @@ namespace Calcifer.Api.Infrastructure
                     UserName = superUserEmail,
                     Email = superUserEmail,
                     Name = "System Super Admin",
-                    EmailConfirmed = true
-                };
+                    EmailConfirmed = true,
+                    EmployeeId= "000001",
+					Status=9999,
+					CreateAt = DateTime.Now,
+				};
 
                 var result = await userManager.CreateAsync(newSuperAdmin, "p@ssword");
 

@@ -11,6 +11,7 @@ using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
 using Calcifer.Api.Interface.Common;
+using Calcifer.Api.Infrastructure;
 
 namespace Calcifer.Api.DependencyInversion
 {
@@ -47,6 +48,7 @@ namespace Calcifer.Api.DependencyInversion
             // Register custom services
             services.AddScoped<TokenService>();
             services.AddScoped<AuthService>();
+
 
 
 

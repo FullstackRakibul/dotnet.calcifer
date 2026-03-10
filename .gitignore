@@ -14,6 +14,7 @@
 *.vssscc
 *.sln.ide/
 
+src/Calcifer.Api/v1/appsettings.json
 # =========================================
 # Build & Publish Artifacts
 # =========================================
