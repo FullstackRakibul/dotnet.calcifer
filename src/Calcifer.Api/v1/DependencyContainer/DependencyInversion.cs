@@ -30,14 +30,6 @@ namespace Calcifer.Api.DependencyInversion
 
 
 
-
-
-
-
-
-
-
-
             // Register Identity - configure to NOT override default authentication scheme
             services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {

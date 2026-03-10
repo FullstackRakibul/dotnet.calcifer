@@ -24,7 +24,7 @@ namespace Calcifer.Api.Infrastructure
             }
 
             // 1. Seed Roles
-            string[] roles = { "SUPERADMIN", "ADMIN", "MODERATOR", "REGULAR USER" };
+            string[] roles = { "SUPERADMIN", "ADMIN", "MODERATOR", "REGULARUSER" };
 
             foreach (var role in roles)
             {
