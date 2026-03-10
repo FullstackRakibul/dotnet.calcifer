@@ -1,0 +1,29 @@
+name: Publish Calcifer to NuGet
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    # This silences the Node.js 20 deprecation warning
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # This forces the runner to use the latest .NET 8 SDK
+          dotnet-version: "8.0.x"
+
+      - name: Build and Pack
+        run: dotnet pack dotnet.calcifer.csproj -c Release -o ./out
+
+      - name: Push to NuGet
+        run: dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
