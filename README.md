@@ -45,21 +45,21 @@ src/Calcifer.Api/
 
 On every startup, `DatabaseInitializer.SeedAsync` runs an ordered, idempotent seeding pipeline:
 
-| Step | What is seeded |
-|------|---------------|
-| 1 | **Roles** — `SUPERADMIN`, `ADMIN`, `MODERATOR`, `REGULARUSER` |
-| 2 | **SuperAdmin user** — `superadmin@system.com` assigned to `SUPERADMIN` role |
-| 3 | **CommonStatus reference data** — Active, Inactive, Deleted, Draft, Pending, Approved, Rejected, Expired, Terminated, Suspended |
+| Step | What is seeded                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | **Roles** — `SUPERADMIN`, `ADMIN`, `MODERATOR`, `REGULARUSER`                                                                   |
+| 2    | **SuperAdmin user** — `superadmin@system.com` assigned to `SUPERADMIN` role                                                     |
+| 3    | **CommonStatus reference data** — Active, Inactive, Deleted, Draft, Pending, Approved, Rejected, Expired, Terminated, Suspended |
 
 > A guard clause checks `CommonStatus.AnyAsync()` before seeding — no duplicate data is ever inserted.
 
 ## 🔐 Authorization Policies
 
-| Policy | Allowed Roles |
-|--------|--------------|
-| `SuperAdminPolicy` | `SUPERADMIN` |
-| `AdminPolicy` | `SUPERADMIN`, `ADMIN` |
-| `ModeratorPolicy` | `SUPERADMIN`, `ADMIN`, `MODERATOR` |
+| Policy             | Allowed Roles                      |
+| ------------------ | ---------------------------------- |
+| `SuperAdminPolicy` | `SUPERADMIN`                       |
+| `AdminPolicy`      | `SUPERADMIN`, `ADMIN`              |
+| `ModeratorPolicy`  | `SUPERADMIN`, `ADMIN`, `MODERATOR` |
 
 ## 🛠️ Prerequisites
 
@@ -83,6 +83,8 @@ dotnet new dotnet.calcifer -n MyProjectName
 ## ⚡ Database Migrations
 
 From inside `src/Calcifer.Api/v1/`, run:
+
+.
 
 ```bash
 # Add a new migration
