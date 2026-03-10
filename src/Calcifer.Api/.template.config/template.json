@@ -5,10 +5,10 @@
 	"identity": "Dotnet.Calcifer.Template",
 	"name": "Calcifer Secure Microservice API",
 	"shortName": "dotnet.calcifer",
-	"sourceName": "Calcifer.Api",
-	"preferNameDirectory": true,
 	"tags": {
 		"language": "C#",
 		"type": "project"
-	}
+	},
+	"sourceName": "Calcifer.Api",
+  "preferNameDirectory": true
 }
