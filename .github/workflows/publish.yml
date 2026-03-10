@@ -8,7 +8,7 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
-    # 1. THIS FIXES THE NODE 20 WARNING  ..
+    # This silences the Node.js 20 deprecation warning
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          # 2. THIS FIXES THE DOTNET INSTALL ERROR
+          # This forces the runner to use the latest .NET 8 SDK
           dotnet-version: "8.0.x"
 
       - name: Build and Pack
