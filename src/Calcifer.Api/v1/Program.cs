@@ -15,19 +15,13 @@ var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 // register services to the container.
-DependencyInversion.RegisterServices(builder.Services);
+DependencyInversion.RegisterServices(builder.Services, configuration);
 
 // config Dependency Injection
 builder.Services.AddDbContext<CalciferAppDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("CalciferDBContext")));
 
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("SuperAdminPolicy", policy => policy.RequireRole("SUPERADMIN"));
-    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN"));
-    options.AddPolicy("ModeratorPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN", "MODERATOR"));
-});
 
 
 // Register controllers & minimal APIs

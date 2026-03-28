@@ -12,14 +12,12 @@ namespace Calcifer.Api.DbContexts.AuthModels
         public string EmployeeId { get; set; }
         public string Name { get; set; }
         public string? Region { get; set; }
-        public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
         public int Status { get; set; }
-        public DateTime CreateAt { get; set; }
-        public string? UpdateBy { get; set; }
-        public DateTime UpdateAt { get; set; }
-        public string? DeleteBy { get; set; }
-        public DateTime DeleteAt { get; set; }
+        public string? UpdatedBy { get; set; }
+        public string? DeletedBy { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public bool IsDeleted { get; set; }
     }
 }

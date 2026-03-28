@@ -10,7 +10,9 @@ using Calcifer.Api.DbContexts.AuthModels;
 
 using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
+using Calcifer.Api.Services.LicenseService;
 using Calcifer.Api.Interface.Common;
+using Calcifer.Api.Interface.Licensing;
 using Calcifer.Api.Infrastructure;
 
 namespace Calcifer.Api.DependencyInversion
@@ -18,9 +20,10 @@ namespace Calcifer.Api.DependencyInversion
     public class DependencyInversion
     {
 
-        internal static void RegisterServices(IServiceCollection services)
+        internal static void RegisterServices(IServiceCollection services, IConfiguration configuration)
         {
-            services.AddScoped <IPublicInterface ,PublicService>();
+            services.AddScoped<IPublicInterface, PublicService>();
+            services.AddScoped<ILicenseService, LicenseService>();
 
 
 
@@ -62,8 +65,7 @@ namespace Calcifer.Api.DependencyInversion
             })
                 .AddJwtBearer(options =>
                 {
-                    var serviceProvider = services.BuildServiceProvider();
-                    var jwtSettings = serviceProvider.GetRequiredService<IConfiguration>().GetSection("JwtSettings").Get<JwtSettings>();
+                    var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -92,11 +94,17 @@ namespace Calcifer.Api.DependencyInversion
                 };
             });
 
-            // Register Role-based Authorization Policies (Dynamic)
+            // Register Role-based Authorization Policies
             services.AddAuthorization(options =>
             {
-                var roleNames = new[] { "Admin", "Manager", "Officer" }; // Can be fetched from DB if needed
-                foreach (var roleName in roleNames)
+                // Core policies (matching seeded roles)
+                options.AddPolicy("SuperAdminPolicy", policy => policy.RequireRole("SUPERADMIN"));
+                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN"));
+                options.AddPolicy("ModeratorPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN", "MODERATOR"));
+
+                // Dynamic policies for additional roles
+                var additionalRoles = new[] { "Manager", "Officer" };
+                foreach (var roleName in additionalRoles)
                 {
                     options.AddPolicy($"{roleName}Policy", policy => policy.RequireRole(roleName));
                 }

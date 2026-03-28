@@ -58,8 +58,8 @@ namespace Calcifer.Api.Services.AuthService
                 Name = dto.Name,
                 PhoneNumber = dto.PhoneNumber,
                 EmployeeId = dto.EmployeeId,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 Status = 1
             };
 

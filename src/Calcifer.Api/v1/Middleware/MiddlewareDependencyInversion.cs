@@ -48,6 +48,7 @@ namespace Calcifer.Api.Middleware
             // Register all API groups here
 
 			api.MapPublicCrudApi();
+			api.RegisterLicenseApi();
 
 			return app;
 		}
