@@ -1,120 +1,114 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+// ============================================================
+//  DependencyInversion.cs — COMPLETE UPDATED VERSION
+//
+//  Registers all services in one place.
+//  RBAC engine is registered as a SCOPED service (one per
+//  HTTP request). Never singleton — it holds DbContext.
+//
+//  Isolation rule enforced here:
+//  - RBAC services are registered in a dedicated block.
+//  - License services are registered in a separate block.
+//  - They do NOT reference each other.
+// ============================================================
+
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
-
+using Calcifer.Api.DbContexts.Rbac.Interfaces;
+using Calcifer.Api.DbContexts.Rbac.Services;
+using Calcifer.Api.Interface.Common;
+using Calcifer.Api.Interface.Licensing;
 using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
 using Calcifer.Api.Services.LicenseService;
-using Calcifer.Api.Interface.Common;
-using Calcifer.Api.Interface.Licensing;
-using Calcifer.Api.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Calcifer.Api.DependencyInversion
 {
-    public class DependencyInversion
-    {
+	public static class DependencyInversion
+	{
+		public static IServiceCollection RegisterServices(
+			IServiceCollection services,
+			IConfiguration configuration)
+		{
+			// ── Identity ─────────────────────────────────────────
+			services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+			{
+				options.Password.RequireDigit = true;
+				options.Password.RequiredLength = 8;
+				options.Password.RequireNonAlphanumeric = false;
+				options.Password.RequireUppercase = true;
+				options.Password.RequireLowercase = true;
+				options.User.RequireUniqueEmail = true;
+			})
+			.AddEntityFrameworkStores<CalciferAppDbContext>()
+			.AddDefaultTokenProviders();
 
-        internal static void RegisterServices(IServiceCollection services, IConfiguration configuration)
-        {
-            services.AddScoped<IPublicInterface, PublicService>();
-            services.AddScoped<ILicenseService, LicenseService>();
+			// ── JWT Authentication ────────────────────────────────
+			var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>()
+				?? throw new InvalidOperationException("JwtSettings not configured.");
 
+			services.AddAuthentication(options =>
+			{
+				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+			})
+			.AddJwtBearer(options =>
+			{
+				options.TokenValidationParameters = new TokenValidationParameters
+				{
+					ValidateIssuer = true,
+					ValidateAudience = true,
+					ValidateLifetime = true,
+					ValidateIssuerSigningKey = true,
+					ValidIssuer = jwtSettings.Issuer,
+					ValidAudience = jwtSettings.Audience,
+					IssuerSigningKey = new SymmetricSecurityKey(
+												Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+					ClockSkew = TimeSpan.Zero   // no grace period
+				};
+			});
 
+			// ── Authorization policies ───────────────────────────
+			services.AddAuthorization(options =>
+			{
+				// Identity-level policies
+				options.AddPolicy("SuperAdminPolicy",
+					p => p.RequireRole("SuperAdmin"));
 
+				options.AddPolicy("AuthenticatedPolicy",
+					p => p.RequireAuthenticatedUser());
 
+				// Example permission-level policies (used alongside [RequirePermission])
+				options.AddPolicy("CanReadHCM",
+					p => p.RequireClaim("perms", "HCM:Employee:Read"));
 
+				options.AddPolicy("CanManageUsers",
+					p => p.RequireClaim("perms", "Administration:UserManagement:Create",
+												  "Administration:UserManagement:Update"));
+			});
 
+			// ── RBAC Engine ──────────────────────────────────────
+			// Scoped: one instance per HTTP request.
+			// ISOLATED: No license service imported here.
+			services.AddScoped<IRbacService, RbacService>();
 
+			// ── Auth Services ─────────────────────────────────────
+			services.AddScoped<AuthService>();
+			services.AddScoped<RoleService>();
+			services.AddScoped<TokenService>();
 
+			// ── License Services ──────────────────────────────────
+			// ISOLATED: No RBAC service imported here.
+			services.AddScoped<ILicenseService, LicenseService>();
 
+			// ── Domain Services ───────────────────────────────────
+			services.AddScoped<IPublicInterface, PublicService>();
 
-            // Register Identity - configure to NOT override default authentication scheme
-            services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
-            {
-                // Password settings (optional, adjust as needed)
-                options.Password.RequireDigit = false;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireUppercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequiredLength = 6;
-            })
-                .AddEntityFrameworkStores<CalciferAppDbContext>()
-                .AddDefaultTokenProviders();
-           
-
-            // Register custom services
-            services.AddScoped<TokenService>();
-            services.AddScoped<AuthService>();
-
-
-
-
-
-            // Register JWT Authentication - Set JWT Bearer as default scheme
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-                .AddJwtBearer(options =>
-                {
-                    var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
-
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = jwtSettings.Issuer,
-                        ValidAudience = jwtSettings.Audience,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
-                    };
-                });
-
-            // Configure Identity to NOT redirect to login page for API requests
-            services.ConfigureApplicationCookie(options =>
-            {
-                options.Events.OnRedirectToLogin = context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    return Task.CompletedTask;
-                };
-                options.Events.OnRedirectToAccessDenied = context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    return Task.CompletedTask;
-                };
-            });
-
-            // Register Role-based Authorization Policies
-            services.AddAuthorization(options =>
-            {
-                // Core policies (matching seeded roles)
-                options.AddPolicy("SuperAdminPolicy", policy => policy.RequireRole("SUPERADMIN"));
-                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN"));
-                options.AddPolicy("ModeratorPolicy", policy => policy.RequireRole("SUPERADMIN", "ADMIN", "MODERATOR"));
-
-                // Dynamic policies for additional roles
-                var additionalRoles = new[] { "Manager", "Officer" };
-                foreach (var roleName in additionalRoles)
-                {
-                    options.AddPolicy($"{roleName}Policy", policy => policy.RequireRole(roleName));
-                }
-            });
-
-
-            // Add Http Context 
-
-            services.AddHttpContextAccessor();
-
+			return services;
 		}
 	}
 }
