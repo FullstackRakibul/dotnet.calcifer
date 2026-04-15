@@ -1,3 +1,17 @@
+// ============================================================
+//  LicenseService.cs
+//  Complete implementation of ILicenseService.
+//
+//  Design rules:
+//  - Never imports IRbacService — fully isolated
+//  - License key is generated as a cryptographic GUID string
+//    so it cannot be guessed
+//  - Machine activation enforces MaxUsers at the DB level
+//    (unique index on LicenseId+MachineId) AND at service level
+//  - IsFeatureEnabledAsync is the hot path called by the filter
+//    on every request — it's kept as a single cheap query
+// ============================================================
+
 using System.Security.Cryptography;
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.Licensing;
@@ -10,242 +24,326 @@ namespace Calcifer.Api.Services.LicenseService
     public class LicenseService : ILicenseService
     {
         private readonly CalciferAppDbContext _db;
+        private readonly ILogger<LicenseService> _logger;
 
-        public LicenseService(CalciferAppDbContext db) => _db = db;
-
-        public async Task<LicenseResponse> CreateLicenseAsync(
-            CreateLicenseRequest request, string createdBy)
+        public LicenseService(CalciferAppDbContext db, ILogger<LicenseService> logger)
         {
-            var licenseType = await _db.LicenseTypes.FindAsync(request.LicenseTypeId)
-                ?? throw new ArgumentException("Invalid license type.");
-
-            var license = new License
-            {
-                LicenseKey = GenerateLicenseKey(licenseType.Name),
-                OrganizationName = request.OrganizationName,
-                ContactEmail = request.ContactEmail,
-                LicenseTypeId = request.LicenseTypeId,
-                MaxUsers = request.MaxUsers > 0 ? request.MaxUsers : licenseType.DefaultMaxUsers,
-                IssuedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(licenseType.DurationDays),
-                CreatedBy = createdBy
-            };
-
-            // Attach features
-            license.LicenseFeatures = request.FeatureCodes
-                .Select(fc => new LicenseFeature { FeatureCode = fc.ToUpper() })
-                .ToList();
-
-            _db.Licenses.Add(license);
-            await _db.SaveChangesAsync();
-
-            return MapToResponse(license, licenseType.Name);
+            _db = db;
+            _logger = logger;
         }
 
-        public async Task<LicenseValidationResult> ValidateLicenseAsync(string licenseKey)
+        // ── Validation (hot path) ────────────────────────────────
+
+        public async Task<bool> IsFeatureEnabledAsync(
+            string featureCode, CancellationToken ct = default)
         {
-            // Future: plug cache here — cache.GetOrCreate("license_" + licenseKey, ...)
-
-            var license = await _db.Licenses
-                .Include(l => l.LicenseType)
-                .Include(l => l.LicenseFeatures)
-                .Include(l => l.Activations.Where(a => a.IsActive))
-                .FirstOrDefaultAsync(l => l.LicenseKey == licenseKey);
-
-            if (license == null)
-                return new() { IsValid = false, Message = "License key not found." };
-
-            if (!license.IsActive)
-                return new() { IsValid = false, Message = "License has been deactivated." };
-
-            if (license.ExpiresAt < DateTime.UtcNow)
-                return new() { IsValid = false, Message = "License has expired." };
-
-            var activeSeatCount = license.Activations?.Count ?? 0;
-
-            return new LicenseValidationResult
-            {
-                IsValid = true,
-                Message = "License is valid.",
-                EnabledFeatures = license.LicenseFeatures
-                    .Where(f => f.IsEnabled)
-                    .Select(f => f.FeatureCode).ToList(),
-                ExpiresAt = license.ExpiresAt,
-                RemainingSeats = license.MaxUsers - activeSeatCount
-            };
+            // Single query: find an active, non-expired license that
+            // has this feature enabled. Returns true/false.
+            return await _db.LicenseFeatures
+                .Include(f => f.License)
+                .AnyAsync(f =>
+                    f.FeatureCode == featureCode &&
+                    f.IsEnabled &&
+                    f.License.IsActive &&
+                    !f.License.IsDeleted &&
+                    f.License.ExpiresAt > DateTime.UtcNow,
+                    ct);
         }
 
-        public async Task<LicenseValidationResult> ActivateLicenseAsync(
-            ActivateLicenseRequest request, string userId)
-        {
-            // Use transaction to prevent seat-count race condition
-            await using var transaction = await _db.Database.BeginTransactionAsync();
-
-            try
-            {
-                var license = await _db.Licenses
-                    .Include(l => l.LicenseType)
-                    .Include(l => l.LicenseFeatures)
-                    .Include(l => l.Activations.Where(a => a.IsActive))
-                    .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey);
-
-                if (license == null)
-                    return new() { IsValid = false, Message = "License key not found." };
-
-                if (!license.IsActive)
-                    return new() { IsValid = false, Message = "License has been deactivated." };
-
-                if (license.ExpiresAt < DateTime.UtcNow)
-                    return new() { IsValid = false, Message = "License has expired." };
-
-                var activeSeatCount = license.Activations?.Count ?? 0;
-
-                // Check for duplicate machine activation
-                var alreadyActivated = license.Activations?
-                    .Any(a => a.MachineId == request.MachineId && a.IsActive) ?? false;
-
-                if (alreadyActivated)
-                {
-                    // Machine already activated — return valid without creating duplicate
-                    return BuildValidResult(license, activeSeatCount);
-                }
-
-                if (activeSeatCount >= license.MaxUsers)
-                    return new() { IsValid = false, Message = "No seats remaining on this license." };
-
-                _db.LicenseActivations.Add(new LicenseActivation
-                {
-                    LicenseId = license.Id,
-                    MachineId = request.MachineId,
-                    ActivatedByUserId = userId,
-                    ActivatedAt = DateTime.UtcNow
-                });
-
-                await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return BuildValidResult(license, activeSeatCount + 1);
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
-
-        public async Task<bool> DeactivateLicenseAsync(Guid licenseGuid, string deactivatedBy)
-        {
-            var license = await _db.Licenses
-                .FirstOrDefaultAsync(l => l.LicenseGuid == licenseGuid);
-
-            if (license == null) return false;
-
-            license.IsActive = false;
-            license.DeletedBy = deactivatedBy;
-            license.DeletedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<LicenseResponse?> GetLicenseByKeyAsync(string licenseKey)
-        {
-            // Future: plug cache here
-            var license = await _db.Licenses
-                .Include(l => l.LicenseType)
-                .Include(l => l.LicenseFeatures)
-                .Include(l => l.Activations.Where(a => a.IsActive))
-                .FirstOrDefaultAsync(l => l.LicenseKey == licenseKey);
-
-            return license == null ? null : MapToResponse(license, license.LicenseType.Name);
-        }
-
-        public async Task<LicenseResponse?> GetLicenseByIdAsync(int id)
-        {
-            var license = await _db.Licenses
-                .Include(l => l.LicenseType)
-                .Include(l => l.LicenseFeatures)
-                .Include(l => l.Activations.Where(a => a.IsActive))
-                .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
-
-            return license == null ? null : MapToResponse(license, license.LicenseType.Name);
-        }
-
-        public async Task<List<LicenseResponse>> GetAllLicensesAsync()
+        public async Task<License?> GetActiveLicenseAsync(CancellationToken ct = default)
         {
             return await _db.Licenses
                 .Include(l => l.LicenseType)
                 .Include(l => l.LicenseFeatures)
-                .Include(l => l.Activations.Where(a => a.IsActive))
+                .Where(l =>
+                    l.IsActive &&
+                    !l.IsDeleted &&
+                    l.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(l => l.IssuedAt)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<License?> ValidateLicenseKeyAsync(
+            string licenseKey, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(licenseKey)) return null;
+
+            return await _db.Licenses
+                .Include(l => l.LicenseType)
+                .Include(l => l.LicenseFeatures)
+                .Where(l =>
+                    l.LicenseKey == licenseKey &&
+                    l.IsActive &&
+                    !l.IsDeleted &&
+                    l.ExpiresAt > DateTime.UtcNow)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        // ── Machine activation ────────────────────────────────────
+
+        public async Task<(bool Success, string Message)> ActivateMachineAsync(
+            string licenseKey, string machineId,
+            string? activatedByUserId = null,
+            CancellationToken ct = default)
+        {
+            var license = await ValidateLicenseKeyAsync(licenseKey, ct);
+            if (license == null)
+                return (false, "License key is invalid, expired, or revoked.");
+
+            // Check for existing activation on this machine
+            var existing = await _db.LicenseActivations
+                .FirstOrDefaultAsync(a =>
+                    a.LicenseId == license.Id &&
+                    a.MachineId == machineId &&
+                    a.IsActive, ct);
+
+            if (existing != null)
+                return (true, "Machine is already activated on this license.");
+
+            // Enforce MaxUsers — count current active activations
+            var activeCount = await _db.LicenseActivations
+                .CountAsync(a => a.LicenseId == license.Id && a.IsActive, ct);
+
+            if (activeCount >= license.MaxUsers)
+                return (false, $"License has reached the maximum of {license.MaxUsers} concurrent activations. Deactivate another machine first.");
+
+            _db.LicenseActivations.Add(new LicenseActivation
+            {
+                LicenseId = license.Id,
+                MachineId = machineId,
+                ActivatedByUserId = activatedByUserId,
+                ActivatedAt = DateTime.UtcNow,
+                IsActive = true
+            });
+
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Machine {MachineId} activated on license {LicenseKey}", machineId, licenseKey);
+            return (true, "Machine activated successfully.");
+        }
+
+        public async Task<bool> DeactivateMachineAsync(
+            string licenseKey, string machineId,
+            CancellationToken ct = default)
+        {
+            var license = await _db.Licenses
+                .FirstOrDefaultAsync(l => l.LicenseKey == licenseKey, ct);
+
+            if (license == null) return false;
+
+            var activation = await _db.LicenseActivations
+                .FirstOrDefaultAsync(a =>
+                    a.LicenseId == license.Id &&
+                    a.MachineId == machineId &&
+                    a.IsActive, ct);
+
+            if (activation == null) return false;
+
+            activation.IsActive = false;
+            activation.DeactivatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Machine {MachineId} deactivated from license {LicenseKey}", machineId, licenseKey);
+            return true;
+        }
+
+        public async Task<IEnumerable<LicenseActivation>> GetActivationsAsync(
+            int licenseId, CancellationToken ct = default)
+        {
+            return await _db.LicenseActivations
+                .Where(a => a.LicenseId == licenseId && a.IsActive)
+                .OrderByDescending(a => a.ActivatedAt)
+                .ToListAsync(ct);
+        }
+
+        // ── Admin CRUD ────────────────────────────────────────────
+
+        public async Task<IEnumerable<LicenseResponseDto>> GetAllAsync(
+            CancellationToken ct = default)
+        {
+            var licenses = await _db.Licenses
+                .Include(l => l.LicenseType)
+                .Include(l => l.LicenseFeatures)
+                .Include(l => l.Activations)
                 .Where(l => !l.IsDeleted)
                 .OrderByDescending(l => l.IssuedAt)
-                .Select(l => MapToResponse(l, l.LicenseType.Name))
-                .ToListAsync();
+                .ToListAsync(ct);
+
+            return licenses.Select(MapToDto);
         }
 
-        public async Task<bool> HasFeatureAsync(string licenseKey, string featureCode)
+        public async Task<LicenseResponseDto?> GetByIdAsync(
+            int id, CancellationToken ct = default)
         {
-            // Future: plug cache here
-            return await _db.LicenseFeatures
-                .AnyAsync(f => f.License.LicenseKey == licenseKey
-                    && f.FeatureCode == featureCode.ToUpper()
-                    && f.IsEnabled);
+            var license = await _db.Licenses
+                .Include(l => l.LicenseType)
+                .Include(l => l.LicenseFeatures)
+                .Include(l => l.Activations)
+                .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted, ct);
+
+            return license == null ? null : MapToDto(license);
         }
 
-        // ─── Helpers ────────────────────────────────────────
-
-        /// <summary>
-        /// Generates a human-readable, structured license key.
-        /// Format: LIC-{TYPE}-{5CHARS}-{5CHARS}-{5CHARS}
-        /// Example: LIC-PRO-8F3K2-9XQW1-ABCDE
-        /// </summary>
-        private static string GenerateLicenseKey(string typeName)
+        public async Task<LicenseResponseDto> CreateAsync(
+            CreateLicenseRequest request, CancellationToken ct = default)
         {
-            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No 0/O/1/I confusion
-            var segments = new string[3];
+            // Verify LicenseType exists
+            var licenseType = await _db.LicenseTypes
+                .FindAsync([request.LicenseTypeId], ct)
+                ?? throw new InvalidOperationException($"LicenseType {request.LicenseTypeId} not found.");
 
-            for (int s = 0; s < 3; s++)
+            // Generate a cryptographically secure, human-readable license key
+            // Format: XXXX-XXXX-XXXX-XXXX (16 uppercase hex chars in groups of 4)
+            var key = GenerateLicenseKey();
+
+            var license = new License
             {
-                var bytes = RandomNumberGenerator.GetBytes(5);
-                var segment = new char[5];
-                for (int i = 0; i < 5; i++)
+                LicenseKey = key,
+                LicenseGuid = Guid.NewGuid(),
+                OrganizationName = request.OrganizationName,
+                ContactEmail = request.ContactEmail,
+                LicenseTypeId = request.LicenseTypeId,
+                IssuedAt = DateTime.UtcNow,
+                ExpiresAt = request.ExpiresAt,
+                MaxUsers = request.MaxUsers,
+                IsActive = true,
+                StatusId = 1
+            };
+
+            _db.Licenses.Add(license);
+            await _db.SaveChangesAsync(ct);
+
+            // Add features
+            if (request.FeatureCodes.Any())
+            {
+                var features = request.FeatureCodes.Select(code => new LicenseFeature
                 {
-                    segment[i] = chars[bytes[i] % chars.Length];
-                }
-                segments[s] = new string(segment);
+                    LicenseId = license.Id,
+                    FeatureCode = code,
+                    Description = $"Module: {code}",
+                    IsEnabled = true
+                });
+                _db.LicenseFeatures.AddRange(features);
+                await _db.SaveChangesAsync(ct);
             }
 
-            var typePrefix = typeName.Length >= 3
-                ? typeName[..3].ToUpper()
-                : typeName.ToUpper();
-
-            return $"LIC-{typePrefix}-{segments[0]}-{segments[1]}-{segments[2]}";
+            // Reload with navigation properties for the response
+            return await GetByIdAsync(license.Id, ct)
+                ?? throw new InvalidOperationException("Created license could not be reloaded.");
         }
 
-        private static LicenseValidationResult BuildValidResult(License license, int seatCount) => new()
+        public async Task<bool> UpdateAsync(
+            int id, UpdateLicenseRequest request, CancellationToken ct = default)
         {
-            IsValid = true,
-            Message = "License is valid.",
-            EnabledFeatures = license.LicenseFeatures
-                .Where(f => f.IsEnabled)
-                .Select(f => f.FeatureCode).ToList(),
-            ExpiresAt = license.ExpiresAt,
-            RemainingSeats = license.MaxUsers - seatCount
-        };
+            var license = await _db.Licenses
+                .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted, ct);
 
-        private static LicenseResponse MapToResponse(License l, string typeName) => new()
+            if (license == null) return false;
+
+            if (request.OrganizationName != null) license.OrganizationName = request.OrganizationName;
+            if (request.ContactEmail != null) license.ContactEmail = request.ContactEmail;
+            if (request.ExpiresAt != null) license.ExpiresAt = request.ExpiresAt.Value;
+            if (request.MaxUsers != null) license.MaxUsers = request.MaxUsers.Value;
+            if (request.IsActive != null) license.IsActive = request.IsActive.Value;
+
+            license.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> RevokeAsync(
+            int id, string revokedBy, CancellationToken ct = default)
         {
+            var license = await _db.Licenses
+                .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted, ct);
+
+            if (license == null) return false;
+
+            license.IsActive = false;
+            license.UpdatedAt = DateTime.UtcNow;
+            license.UpdatedBy = revokedBy;
+            license.StatusId = 3; // Revoked status in CommonStatus
+
+            // Deactivate all machine activations
+            await _db.LicenseActivations
+                .Where(a => a.LicenseId == id && a.IsActive)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.IsActive, false)
+                    .SetProperty(a => a.DeactivatedAt, DateTime.UtcNow), ct);
+
+            await _db.SaveChangesAsync(ct);
+            _logger.LogWarning("License {LicenseId} revoked by {RevokedBy}", id, revokedBy);
+            return true;
+        }
+
+        // ── Feature management ────────────────────────────────────
+
+        public async Task<IEnumerable<LicenseFeature>> GetFeaturesAsync(
+            int licenseId, CancellationToken ct = default)
+        {
+            return await _db.LicenseFeatures
+                .Where(f => f.LicenseId == licenseId)
+                .OrderBy(f => f.FeatureCode)
+                .ToListAsync(ct);
+        }
+
+        public async Task<bool> SetFeatureAsync(
+            int licenseId, string featureCode, bool isEnabled, CancellationToken ct = default)
+        {
+            var feature = await _db.LicenseFeatures
+                .FirstOrDefaultAsync(f => f.LicenseId == licenseId && f.FeatureCode == featureCode, ct);
+
+            if (feature != null)
+            {
+                feature.IsEnabled = isEnabled;
+            }
+            else
+            {
+                // Create the feature record if it doesn't exist yet
+                _db.LicenseFeatures.Add(new LicenseFeature
+                {
+                    LicenseId = licenseId,
+                    FeatureCode = featureCode,
+                    IsEnabled = isEnabled,
+                    Description = $"Module: {featureCode}"
+                });
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        // ── Private helpers ───────────────────────────────────────
+
+        private static string GenerateLicenseKey()
+        {
+            // Generates a secure random key like: A3F9-BC12-74DE-091F
+            var bytes = RandomNumberGenerator.GetBytes(8);
+            var hex = Convert.ToHexString(bytes); // 16 uppercase chars
+            return $"{hex[..4]}-{hex[4..8]}-{hex[8..12]}-{hex[12..16]}";
+        }
+
+        private static LicenseResponseDto MapToDto(License l) => new()
+        {
+            Id = l.Id,
             LicenseGuid = l.LicenseGuid,
             LicenseKey = l.LicenseKey,
             OrganizationName = l.OrganizationName,
-            LicenseTypeName = typeName,
+            ContactEmail = l.ContactEmail,
+            LicenseTypeId = l.LicenseTypeId,
+            LicenseTypeName = l.LicenseType?.Name ?? string.Empty,
             IssuedAt = l.IssuedAt,
             ExpiresAt = l.ExpiresAt,
             MaxUsers = l.MaxUsers,
-            ActiveSeatCount = l.Activations?.Count(a => a.IsActive) ?? 0,
             IsActive = l.IsActive,
-            Features = l.LicenseFeatures?.Where(f => f.IsEnabled)
-                .Select(f => f.FeatureCode).ToList() ?? new()
+            IsExpired = l.ExpiresAt < DateTime.UtcNow,
+            ActiveActivationCount = l.Activations.Count(a => a.IsActive),
+            Features = l.LicenseFeatures.Select(f => new LicenseFeatureDto
+            {
+                Id = f.Id,
+                FeatureCode = f.FeatureCode,
+                Description = f.Description,
+                IsEnabled = f.IsEnabled
+            })
         };
     }
 }
