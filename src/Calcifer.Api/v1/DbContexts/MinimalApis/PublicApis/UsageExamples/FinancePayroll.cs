@@ -2,9 +2,16 @@
 using Calcifer.Api.DbContexts.Rbac.Interfaces;
 namespace Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples
 {
+	/// <summary>Stub interface — replace with real implementation when Finance module is built.</summary>
+	public interface IPayrollService
+	{
+		Task<IEnumerable<object>> GetAllAsync();
+		Task<byte[]> ExportAsync();
+	}
+
 	public static class FinancePayroll
 	{
-		public static void FinancePayrollApis(this IEndpointConventionBuilder app){
+		public static void FinancePayrollApis(this IEndpointRouteBuilder app){
 
 			var group = app.MapGroup("/finance/payroll")
 						  .WithTags("Finance Payroll");
@@ -28,4 +35,3 @@ namespace Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples
 		
 	}
 }
-

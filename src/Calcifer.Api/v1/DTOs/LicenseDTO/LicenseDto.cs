@@ -97,4 +97,3 @@ namespace Calcifer.Api.DTOs.LicenseDTO
         public string LicenseKey { get; set; } = string.Empty;
     }
 }
-}

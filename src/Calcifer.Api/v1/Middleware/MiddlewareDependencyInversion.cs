@@ -43,12 +43,12 @@ namespace Calcifer.Api.Middleware
 
 			//api.WithRequestTimeout("3000");
 
-			 api.RegisterIdentityApi();
+			 api.MapIdentityApis();
 
             // Register all API groups here
 
 			api.MapPublicCrudApi();
-			api.RegisterLicenseApi();
+			api.MapLicenseApis();
 
 			return app;
 		}

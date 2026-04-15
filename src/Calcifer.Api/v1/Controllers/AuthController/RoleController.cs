@@ -21,15 +21,15 @@ namespace Calcifer.Api.Controllers.AuthController
         [HttpPost("create")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequestDto request)
         {
-            var result = await _roleService.CreateRoleAsync(request.RoleName, request.Description);
-            return result ? Ok("Role created successfully") : BadRequest("Role already exists or failed to create");
+            var (success, message, _) = await _roleService.CreateRoleAsync(request);
+            return success ? Ok(new { message }) : BadRequest(new { message });
         }
 
         [HttpPost("assign")]
         public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto request)
         {
-            var result = await _roleService.AssignRoleAsync(request.UserId, request.RoleName);
-            return result ? Ok("Role assigned successfully") : BadRequest("Failed to assign role");
+            var (success, message) = await _roleService.AssignRoleAsync(request);
+            return success ? Ok(new { message }) : BadRequest(new { message });
         }
     }
 

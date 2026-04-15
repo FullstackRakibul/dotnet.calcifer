@@ -35,7 +35,7 @@ namespace Calcifer.Api.Controllers.AuthController
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            var (success, access_token, errorMessage) = await _authService.LoginAsync(request.Email, request.Password);
+            var (success, access_token, errorMessage) = await _authService.LoginAsync(request);
             return success ? Ok(new { access_token }) : Unauthorized(new { message = errorMessage });
         }
 

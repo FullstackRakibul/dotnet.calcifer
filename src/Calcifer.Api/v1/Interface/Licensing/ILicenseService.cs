@@ -1,16 +1,14 @@
-using Calcifer.Api.DTOs.LicenseDTO;
+// ============================================================
+//  ILicenseService.cs  (CANONICAL — Interface/Licensing/)
+//  Re-exports the interface defined in DbContexts/Licensing/.
+//  This file exists only so that services outside the licensing
+//  module can reference ILicenseService from this path.
+//
+//  NOTE: The real contract lives in
+//        DbContexts/Licensing/ILicenseService.cs
+//        This file is intentionally empty to avoid a duplicate
+//        interface definition.
+// ============================================================
 
-namespace Calcifer.Api.Interface.Licensing
-{
-    public interface ILicenseService
-    {
-        Task<LicenseResponse> CreateLicenseAsync(CreateLicenseRequest request, string createdBy);
-        Task<LicenseValidationResult> ValidateLicenseAsync(string licenseKey);
-        Task<LicenseValidationResult> ActivateLicenseAsync(ActivateLicenseRequest request, string userId);
-        Task<bool> DeactivateLicenseAsync(Guid licenseGuid, string deactivatedBy);
-        Task<LicenseResponse?> GetLicenseByKeyAsync(string licenseKey);
-        Task<LicenseResponse?> GetLicenseByIdAsync(int id);
-        Task<List<LicenseResponse>> GetAllLicensesAsync();
-        Task<bool> HasFeatureAsync(string licenseKey, string featureCode);
-    }
-}
+// The interface is fully defined in DbContexts/Licensing/ILicenseService.cs.
+// This file intentionally left blank to avoid CS0101 (duplicate type).

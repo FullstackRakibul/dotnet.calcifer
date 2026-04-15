@@ -2,6 +2,7 @@ using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DbContexts.Common;
 using Calcifer.Api.DbContexts.Licensing;
 using Calcifer.Api.DbContexts.Models;
+using Calcifer.Api.DbContexts.Rbac.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;

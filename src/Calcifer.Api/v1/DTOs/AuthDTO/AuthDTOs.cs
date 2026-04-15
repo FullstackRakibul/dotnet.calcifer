@@ -1,36 +1,16 @@
 ﻿// ============================================================
 //  AuthDTOs.cs
-//  All Auth request / response DTOs in one file.
-//  Matches the existing folder structure: DTOs/AuthDTO/
+//  Additional Auth request / response DTOs.
+//  Only contains types NOT already defined in separate files:
+//    - RegisterRequestDto  → RegisterRequestDto.cs
+//    - LoginRequestDto     → LoginRequestDto.cs
+//    - CreateRoleRequestDto → CreateRoleRequestDto.cs
+//    - AssignRoleRequestDto → AssignRoleRequestDto.cs
 // ============================================================
 
 namespace Calcifer.Api.DTOs.AuthDTO
 {
-    // ── Register ─────────────────────────────────────────────────
-
-    public class RegisterRequestDto
-    {
-        public string EmployeeId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public string? Region { get; set; }
-
-        /// <summary>
-        /// Optional: initial role to assign.
-        /// If omitted, defaults to "Employee".
-        /// Only SuperAdmin can assign higher roles at registration.
-        /// </summary>
-        public string? InitialRole { get; set; }
-    }
-
-    // ── Login ─────────────────────────────────────────────────────
-
-    public class LoginRequestDto
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-    }
+    // ── Login response ───────────────────────────────────────────
 
     public class LoginResponseDto
     {
@@ -47,18 +27,6 @@ namespace Calcifer.Api.DTOs.AuthDTO
     }
 
     // ── Role management ───────────────────────────────────────────
-
-    public class CreateRoleRequestDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-    }
-
-    public class AssignRoleRequestDto
-    {
-        public string UserId { get; set; } = string.Empty;
-        public string RoleName { get; set; } = string.Empty;
-    }
 
     public class RoleResponseDto
     {

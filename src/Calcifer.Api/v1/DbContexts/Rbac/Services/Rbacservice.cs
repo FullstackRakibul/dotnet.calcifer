@@ -1,8 +1,4 @@
-﻿// ============================================================
-//  RbacService.cs
-//  Complete RBAC engine implementation.
-//
-//  Permission resolution algorithm (in order):
+﻿//  Permission resolution algorithm (in order):
 //      1. Load all active UserUnitRoles for the user
 //      2. Union all RolePermissions across those roles
 //      3. Load all active UserDirectPermissions
@@ -87,7 +83,7 @@ namespace Calcifer.Api.DbContexts.Rbac.Services
 			var now = DateTime.UtcNow;
 			await _db.PermissionCache
 				.Where(pc => pc.UserId == userId && pc.InvalidatedAt == null)
-				.ExecuteUpdateAsync(s => s.SetProperty(pc => pc.InvalidatedAt, now), ct);
+				.ExecuteUpdateAsync(s => s.SetProperty(pc => pc.InvalidatedAt, pc => now), ct);
 
 			_logger.LogInformation("Permission cache invalidated for user {UserId}", userId);
 		}
@@ -296,11 +292,11 @@ namespace Calcifer.Api.DbContexts.Rbac.Services
 			var roleIds = await roleQuery.Select(r => r.RoleId).Distinct().ToListAsync(ct);
 
 			// Step 2: Get all permissions for those roles
-			var rolePermissions = await _db.RolePermissions
+			var rolePermissions = (await _db.RolePermissions
 				.Include(rp => rp.Permission)
 				.Where(rp => roleIds.Contains(rp.RoleId) && rp.Permission.IsActive)
 				.Select(rp => rp.Permission.ClaimValue)
-				.ToHashSetAsync(ct);
+				.ToListAsync(ct)).ToHashSet();
 
 			// Step 3: Get all active direct overrides
 			var directOverrides = await _db.UserDirectPermissions

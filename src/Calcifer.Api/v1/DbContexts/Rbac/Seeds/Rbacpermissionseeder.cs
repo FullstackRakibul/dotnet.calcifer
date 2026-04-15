@@ -168,9 +168,9 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 		private static async Task SeedPermissionsAsync(
 			CalciferAppDbContext db, ILogger logger)
 		{
-			var existingKeys = await db.Permissions
+			var existingKeys = (await db.Permissions
 				.Select(p => $"{p.Module}:{p.Resource}:{p.Action}")
-				.ToHashSetAsync();
+				.ToListAsync()).ToHashSet();
 
 			var toInsert = new List<Permission>();
 
@@ -248,9 +248,9 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 			var allPermissions = await db.Permissions.ToListAsync();
 			var allRoles = await db.Roles.ToListAsync();
 
-			var existingLinks = await db.RolePermissions
+			var existingLinks = (await db.RolePermissions
 				.Select(rp => $"{rp.RoleId}:{rp.PermissionId}")
-				.ToHashSetAsync();
+				.ToListAsync()).ToHashSet();
 
 			var toInsert = new List<RolePermission>();
 

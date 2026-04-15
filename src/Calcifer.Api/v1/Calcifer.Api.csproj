@@ -22,6 +22,7 @@
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Rbac\NewFolder\" />
+    <Folder Include="Migrations\" />
     <Folder Include="Services\Common\" />
   </ItemGroup>
 

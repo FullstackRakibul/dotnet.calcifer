@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Calcifer.Api.Migrations
 {
     [DbContext(typeof(CalciferAppDbContext))]
-    [Migration("20260328175339_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260415154548_InitialLaunch")]
+    partial class InitialLaunch
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,7 +35,11 @@ namespace Calcifer.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsSystemRole")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .HasMaxLength(256)
@@ -45,7 +49,7 @@ namespace Calcifer.Api.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<int?>("Status")
+                    b.Property<int>("StatusId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -76,6 +80,9 @@ namespace Calcifer.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -105,7 +112,8 @@ namespace Calcifer.Api.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -125,12 +133,13 @@ namespace Calcifer.Api.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Region")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("StatusId")
                         .HasColumnType("int");
 
                     b.Property<bool>("TwoFactorEnabled")
@@ -149,7 +158,8 @@ namespace Calcifer.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_ApplicationUser_EmployeeId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -158,6 +168,8 @@ namespace Calcifer.Api.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("StatusId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -192,6 +204,9 @@ namespace Calcifer.Api.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Module", "IsActive")
+                        .HasDatabaseName("IX_CommonStatus_ModuleActive");
 
                     b.ToTable("CommonStatus");
                 });
@@ -263,9 +278,12 @@ namespace Calcifer.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LicenseKey")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_License_LicenseKey");
 
                     b.HasIndex("LicenseTypeId");
+
+                    b.HasIndex("StatusId");
 
                     b.ToTable("Licenses");
                 });
@@ -302,6 +320,7 @@ namespace Calcifer.Api.Migrations
 
                     b.HasIndex("LicenseId", "MachineId")
                         .IsUnique()
+                        .HasDatabaseName("IX_LicenseActivation_LicenseMachine")
                         .HasFilter("[MachineId] IS NOT NULL");
 
                     b.ToTable("LicenseActivations");
@@ -387,6 +406,255 @@ namespace Calcifer.Api.Migrations
                     b.HasKey("Guid");
 
                     b.ToTable("PublicData");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<byte>("Level")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrgUnit_Code");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("OrganizationUnits");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Module", "Resource", "Action")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Permission_ModuleResourceAction");
+
+                    b.ToTable("Permissions");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.PermissionCache", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("InvalidatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PermissionSetJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("UserId", "UnitId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PermissionCache_UserUnit")
+                        .HasFilter("[UnitId] IS NOT NULL");
+
+                    b.ToTable("PermissionCache");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.RolePermission", b =>
+                {
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AssignedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.UserDirectPermission", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GrantedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsGranted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("UserDirectPermissions");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.UserUnitRole", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "RoleId", "UnitId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("UserUnitRoles");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -495,15 +763,34 @@ namespace Calcifer.Api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Calcifer.Api.DbContexts.AuthModels.ApplicationUser", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.Common.CommonStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Status");
+                });
+
             modelBuilder.Entity("Calcifer.Api.DbContexts.Licensing.License", b =>
                 {
                     b.HasOne("Calcifer.Api.DbContexts.Licensing.LicenseType", "LicenseType")
                         .WithMany()
                         .HasForeignKey("LicenseTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Calcifer.Api.DbContexts.Common.CommonStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("LicenseType");
+
+                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("Calcifer.Api.DbContexts.Licensing.LicenseActivation", b =>
@@ -526,6 +813,99 @@ namespace Calcifer.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("License");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.PermissionCache", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Calcifer.Api.DbContexts.AuthModels.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.RolePermission", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.Rbac.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Calcifer.Api.DbContexts.AuthModels.ApplicationRole", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.UserDirectPermission", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.Rbac.Entities.Permission", "Permission")
+                        .WithMany("DirectGrants")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Calcifer.Api.DbContexts.AuthModels.ApplicationUser", "User")
+                        .WithMany("DirectPermissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.UserUnitRole", b =>
+                {
+                    b.HasOne("Calcifer.Api.DbContexts.AuthModels.ApplicationRole", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", "Unit")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Calcifer.Api.DbContexts.AuthModels.ApplicationUser", "User")
+                        .WithMany("UnitRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -579,11 +959,37 @@ namespace Calcifer.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Calcifer.Api.DbContexts.AuthModels.ApplicationRole", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.AuthModels.ApplicationUser", b =>
+                {
+                    b.Navigation("DirectPermissions");
+
+                    b.Navigation("UnitRoles");
+                });
+
             modelBuilder.Entity("Calcifer.Api.DbContexts.Licensing.License", b =>
                 {
                     b.Navigation("Activations");
 
                     b.Navigation("LicenseFeatures");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.OrganizationUnit", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Calcifer.Api.DbContexts.Rbac.Entities.Permission", b =>
+                {
+                    b.Navigation("DirectGrants");
+
+                    b.Navigation("RolePermissions");
                 });
 #pragma warning restore 612, 618
         }

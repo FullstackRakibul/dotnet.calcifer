@@ -10,5 +10,12 @@ namespace Calcifer.Api.DTOs.AuthDTO
         public string Name { get; set; }
         public string EmployeeId { get; set; }
         public string? Region { get; set; }
+
+        /// <summary>
+        /// Optional: initial role to assign.
+        /// If omitted, defaults to "Employee".
+        /// Only SuperAdmin can assign higher roles at registration.
+        /// </summary>
+        public string? InitialRole { get; set; }
     }
 }

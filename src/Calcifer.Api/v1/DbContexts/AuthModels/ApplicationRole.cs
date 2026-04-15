@@ -1,3 +1,4 @@
+using Calcifer.Api.DbContexts.Rbac.Entities;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
