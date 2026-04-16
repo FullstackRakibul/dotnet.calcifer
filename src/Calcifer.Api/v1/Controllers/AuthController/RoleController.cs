@@ -1,36 +1,45 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Calcifer.Api.DTOs.AuthDTO;
 using Calcifer.Api.Services.AuthService;
 
 namespace Calcifer.Api.Controllers.AuthController
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    [Authorize(Roles = "ADMINISTRATOR")]
-    public class RoleController : ControllerBase
-    {
-        private readonly RoleService _roleService;
+	/// <summary>
+	/// Manages ASP.NET Identity roles (create, assign to user).
+	/// For RBAC permission management use /api/v1/rbac/* endpoints.
+	/// Restricted to SUPERADMIN.
+	/// </summary>
+	[Route("api/v1/[controller]")]
+	[ApiController]
+	[Authorize(Roles = "SUPERADMIN")]
+	public class RoleController : ControllerBase
+	{
+		private readonly RoleService _roleService;
 
-        public RoleController(RoleService roleService)
-        {
-            _roleService = roleService;
-        }
+		public RoleController(RoleService roleService)
+			=> _roleService = roleService;
 
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequestDto request)
-        {
-            var (success, message, _) = await _roleService.CreateRoleAsync(request);
-            return success ? Ok(new { message }) : BadRequest(new { message });
-        }
+		// POST api/v1/role/create
+		[HttpPost("create")]
+		public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequestDto dto)
+		{
+			var (success, message, _) = await _roleService.CreateRoleAsync(dto);
 
-        [HttpPost("assign")]
-        public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto request)
-        {
-            var (success, message) = await _roleService.AssignRoleAsync(request);
-            return success ? Ok(new { message }) : BadRequest(new { message });
-        }
-    }
+			return success
+				? Ok(new { status = true, message })
+				: BadRequest(new { status = false, message });
+		}
 
+		// POST api/v1/role/assign
+		[HttpPost("assign")]
+		public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequestDto dto)
+		{
+			var (success, message) = await _roleService.AssignRoleAsync(dto);
+
+			return success
+				? Ok(new { status = true, message })
+				: BadRequest(new { status = false, message });
+		}
+	}
 }

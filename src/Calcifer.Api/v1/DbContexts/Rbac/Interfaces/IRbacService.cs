@@ -1,99 +1,102 @@
 ﻿// ============================================================
 //  IRbacService.cs
-//  The RBAC engine contract. All permission logic goes through
-//  here. Controllers and filters NEVER touch the DB directly.
 //
-//  Isolation rule: This interface (and its implementation) live
-//  in the RBAC module only. No other service imports it except
-//  through DI. The license system is completely separate.
+//  Isolation rule: this interface is the ONLY surface the rest
+//  of the application depends on. Controllers, filters, and
+//  minimal APIs import this interface — never RbacService directly.
+//
+//  13 methods in 5 categories:
+//    Resolution (3) · Cache (2) · Roles (3) · Direct (2) · RoleConfig (3)
 // ============================================================
 
-using Calcifer.Api.DbContexts.Rbac.Entities;
 using Calcifer.Api.DbContexts.Rbac.DTOs;
 
-namespace Calcifer.Api.DbContexts.Rbac.Interfaces
+namespace Calcifer.Api.Interface.Rbac
 {
 	public interface IRbacService
 	{
-		// ── Permission resolution ────────────────────────────────
+		// ── Resolution ────────────────────────────────────────────────────
 
-		/// <summary>
-		/// Returns the full resolved permission set for a user at a given unit.
-		/// Applies role permissions + direct overrides.
-		/// Result is cached in PermissionCache.
-		/// </summary>
-		Task<IReadOnlySet<string>> GetPermissionsAsync(string userId, int? unitId = null, CancellationToken ct = default);
+		Task<IReadOnlySet<string>> GetPermissionsAsync(
+			string userId, CancellationToken ct = default);
 
-		/// <summary>
-		/// Fast check: does this user have this one permission?
-		/// Uses cache — no joins at request time.
-		/// </summary>
-		Task<bool> HasPermissionAsync(string userId, string module, string resource, string action, int? unitId = null, CancellationToken ct = default);
+		Task<bool> HasPermissionAsync(
+			string userId, string module, string resource, string action,
+			CancellationToken ct = default);
 
-		/// <summary>
-		/// Builds the compact "perms" claim string list for JWT generation.
-		/// Called once at login / token refresh.
-		/// </summary>
-		Task<IEnumerable<string>> BuildJwtPermissionClaimsAsync(string userId, CancellationToken ct = default);
+		Task<IEnumerable<string>> BuildJwtPermissionClaimsAsync(
+			string userId, CancellationToken ct = default);
 
-		// ── Cache management ─────────────────────────────────────
+		// ── Cache ─────────────────────────────────────────────────────────
 
-		/// <summary>
-		/// Invalidates the cache for a user (all units).
-		/// Call this whenever roles or direct permissions change.
-		/// </summary>
+		/// <summary>Wipe the cache for a user. Next call to GetPermissionsAsync rebuilds it.</summary>
 		Task InvalidateCacheAsync(string userId, CancellationToken ct = default);
 
-		/// <summary>
-		/// Recomputes and stores the cache for a user.
-		/// </summary>
+		/// <summary>Force-rebuild the cache for a user immediately.</summary>
 		Task RecomputeCacheAsync(string userId, CancellationToken ct = default);
 
-		// ── Role management ──────────────────────────────────────
+		// ── User ↔ Role ↔ Unit assignments ───────────────────────────────
 
 		/// <summary>
-		/// Assigns a user to a role at a specific org unit.
-		/// Enforces one-role-per-user-per-unit.
+		/// Assign a user to a role scoped to an org unit.
+		/// Also keeps ASP.NET Identity UserRoles in sync for JWT ClaimTypes.Role.
+		/// Rebuilds PermissionCache on success.
 		/// </summary>
-		Task AssignUserToUnitRoleAsync(string userId, string roleId, int unitId, DateTime? validTo = null, string? assignedBy = null, CancellationToken ct = default);
+		Task<(bool Success, string Message)> AssignUserToUnitRoleAsync(
+			string userId, string roleId, int unitId,
+			DateTime? validFrom = null, DateTime? validTo = null,
+			string? assignedBy = null, CancellationToken ct = default);
 
 		/// <summary>
-		/// Removes a user's role at a specific org unit.
+		/// Soft-delete a user's role assignment at a unit.
+		/// Rebuilds PermissionCache on success.
 		/// </summary>
-		Task RevokeUserUnitRoleAsync(string userId, string roleId, int unitId, CancellationToken ct = default);
+		Task<(bool Success, string Message)> RevokeUserUnitRoleAsync(
+			string userId, string roleId, int unitId,
+			string? revokedBy = null, CancellationToken ct = default);
+
+		/// <summary>Returns all active unit-role assignments for a user.</summary>
+		Task<IEnumerable<UserUnitRoleDto>> GetUserUnitRolesAsync(
+			string userId, CancellationToken ct = default);
+
+		// ── Direct permission overrides ───────────────────────────────────
 
 		/// <summary>
-		/// Returns all active unit-role assignments for a user.
+		/// Upsert a direct permission override for a user.
+		///   IsGranted = true  → explicit grant (even if role doesn't have it)
+		///   IsGranted = false → explicit deny  (even if role does have it)
+		/// Rebuilds PermissionCache on success.
 		/// </summary>
-		Task<IEnumerable<UserUnitRoleDto>> GetUserUnitRolesAsync(string userId, CancellationToken ct = default);
+		Task<(bool Success, string Message)> SetDirectPermissionAsync(
+			string userId, int permissionId, bool isGranted,
+			DateTime? expiresAt = null, string? grantedBy = null,
+			CancellationToken ct = default);
 
-		// ── Direct permission overrides ──────────────────────────
+		/// <summary>Remove a direct override, reverting to role-based access. Rebuilds cache.</summary>
+		Task<(bool Success, string Message)> RemoveDirectPermissionAsync(
+			string userId, int permissionId,
+			string? removedBy = null, CancellationToken ct = default);
+
+		// ── Role ↔ Permission configuration ──────────────────────────────
+
+		/// <summary>Returns all permissions currently attached to a role.</summary>
+		Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(
+			string roleId, CancellationToken ct = default);
 
 		/// <summary>
-		/// Grants or denies a specific permission directly to a user.
+		/// Add a permission to a role.
+		/// Rebuilds cache for all users who hold this role.
 		/// </summary>
-		Task SetDirectPermissionAsync(string userId, int permissionId, bool isGranted, DateTime? expiresAt = null, string? reason = null, string? grantedBy = null, CancellationToken ct = default);
+		Task<(bool Success, string Message)> AssignPermissionToRoleAsync(
+			string roleId, int permissionId,
+			string? assignedBy = null, CancellationToken ct = default);
 
 		/// <summary>
-		/// Removes a direct permission override from a user.
+		/// Remove a permission from a role.
+		/// Rebuilds cache for all users who hold this role.
 		/// </summary>
-		Task RemoveDirectPermissionAsync(string userId, int permissionId, CancellationToken ct = default);
-
-		// ── Query helpers ────────────────────────────────────────
-
-		/// <summary>
-		/// Returns all permissions assigned to a role.
-		/// </summary>
-		Task<IEnumerable<PermissionDto>> GetRolePermissionsAsync(string roleId, CancellationToken ct = default);
-
-		/// <summary>
-		/// Assigns a permission to a role.
-		/// </summary>
-		Task AssignPermissionToRoleAsync(string roleId, int permissionId, string? assignedBy = null, CancellationToken ct = default);
-
-		/// <summary>
-		/// Removes a permission from a role.
-		/// </summary>
-		Task RevokePermissionFromRoleAsync(string roleId, int permissionId, CancellationToken ct = default);
+		Task<(bool Success, string Message)> RevokePermissionFromRoleAsync(
+			string roleId, int permissionId,
+			string? revokedBy = null, CancellationToken ct = default);
 	}
 }

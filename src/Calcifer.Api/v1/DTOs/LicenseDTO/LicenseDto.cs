@@ -1,99 +1,53 @@
-// ============================================================
-//  LicenseDTOs.cs
-//  All request/response DTOs for the licensing module.
-//  Placed in DTOs/LicenseDTO/ to match the existing
-//  project folder convention.
-// ============================================================
+using System.ComponentModel.DataAnnotations;
 
 namespace Calcifer.Api.DTOs.LicenseDTO
 {
-    // ── Outbound ─────────────────────────────────────────────────
+	public record LicenseResponseDto(
+		int Id,
+		Guid LicenseGuid,
+		string LicenseKey,
+		string OrganizationName,
+		string? ContactEmail,
+		string LicenseTypeName,
+		DateTime IssuedAt,
+		DateTime ExpiresAt,
+		int MaxUsers,
+		bool IsActive,
+		bool IsExpired,
+		bool IsEffective,
+		int ActiveActivations,
+		List<LicenseFeatureDto> Features
+	);
 
-    public class LicenseResponseDto
-    {
-        public int Id { get; set; }
-        public Guid LicenseGuid { get; set; }
-        public string LicenseKey { get; set; } = string.Empty;
-        public string OrganizationName { get; set; } = string.Empty;
-        public string? ContactEmail { get; set; }
-        public string LicenseTypeName { get; set; } = string.Empty;
-        public int LicenseTypeId { get; set; }
-        public DateTime IssuedAt { get; set; }
-        public DateTime ExpiresAt { get; set; }
-        public int MaxUsers { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsExpired { get; set; }
-        public int ActiveActivationCount { get; set; }
-        public IEnumerable<LicenseFeatureDto> Features { get; set; } = [];
-    }
+	public record LicenseFeatureDto(
+		int Id,
+		string FeatureCode,
+		string? Description,
+		bool IsEnabled
+	);
 
-    public class LicenseFeatureDto
-    {
-        public int Id { get; set; }
-        public string FeatureCode { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsEnabled { get; set; }
-    }
+	public record CreateLicenseRequest(
+		[Required, MaxLength(100)] string OrganizationName,
+		[MaxLength(100)] string? ContactEmail,
+		[Required] int LicenseTypeId,
+		[Required] DateTime ExpiresAt,
+		int MaxUsers = 50
+	);
 
-    public class LicenseActivationDto
-    {
-        public int Id { get; set; }
-        public string? MachineId { get; set; }
-        public string? ActivatedByUserId { get; set; }
-        public DateTime ActivatedAt { get; set; }
-        public DateTime? DeactivatedAt { get; set; }
-        public bool IsActive { get; set; }
-    }
+	public record UpdateLicenseRequest(
+		[MaxLength(100)] string? OrganizationName,
+		[MaxLength(100)] string? ContactEmail,
+		DateTime? ExpiresAt,
+		int? MaxUsers,
+		bool? IsActive
+	);
 
-    public class LicenseValidationResultDto
-    {
-        public bool IsValid { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public string? OrganizationName { get; set; }
-        public DateTime? ExpiresAt { get; set; }
-        public IEnumerable<string> EnabledFeatures { get; set; } = [];
-    }
+	public record ActivateMachineRequest(
+		[Required, MaxLength(250)] string LicenseKey,
+		[Required, MaxLength(256)] string MachineId
+	);
 
-    // ── Inbound ──────────────────────────────────────────────────
-
-    public class CreateLicenseRequest
-    {
-        public string OrganizationName { get; set; } = string.Empty;
-        public string? ContactEmail { get; set; }
-        public int LicenseTypeId { get; set; }
-        public DateTime ExpiresAt { get; set; }
-        public int MaxUsers { get; set; } = 1;
-
-        /// <summary>
-        /// Optional list of feature codes to enable at creation time.
-        /// Example: ["HCM", "Production", "Inventory"]
-        /// </summary>
-        public IEnumerable<string> FeatureCodes { get; set; } = [];
-    }
-
-    public class UpdateLicenseRequest
-    {
-        public string? OrganizationName { get; set; }
-        public string? ContactEmail { get; set; }
-        public DateTime? ExpiresAt { get; set; }
-        public int? MaxUsers { get; set; }
-        public bool? IsActive { get; set; }
-    }
-
-    public class ActivateMachineRequest
-    {
-        public string LicenseKey { get; set; } = string.Empty;
-        public string MachineId { get; set; } = string.Empty;
-    }
-
-    public class SetFeatureRequest
-    {
-        public string FeatureCode { get; set; } = string.Empty;
-        public bool IsEnabled { get; set; }
-    }
-
-    public class ValidateLicenseRequest
-    {
-        public string LicenseKey { get; set; } = string.Empty;
-    }
+	public record SetFeatureRequest(
+		[Required] bool IsEnabled
+	);
 }

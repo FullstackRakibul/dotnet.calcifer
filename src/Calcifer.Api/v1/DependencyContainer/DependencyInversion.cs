@@ -1,63 +1,65 @@
-// ============================================================
-//  DependencyInversion.cs — COMPLETE UPDATED VERSION
-//
-//  Registers all services in one place.
-//  RBAC engine is registered as a SCOPED service (one per
-//  HTTP request). Never singleton — it holds DbContext.
-//
-//  Isolation rule enforced here:
-//  - RBAC services are registered in a dedicated block.
-//  - License services are registered in a separate block.
-//  - They do NOT reference each other.
-// ============================================================
-
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Rbac.Interfaces;
-using Calcifer.Api.DbContexts.Rbac.Services;
 using Calcifer.Api.Interface.Common;
 using Calcifer.Api.Interface.Licensing;
+using Calcifer.Api.Interface.Rbac;
 using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
 using Calcifer.Api.Services.LicenseService;
+using Calcifer.Api.Services.Rbac;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 namespace Calcifer.Api.DependencyInversion
 {
-	public static class DependencyInversion
+	public class DependencyInversion
 	{
-		public static IServiceCollection RegisterServices(
-			IServiceCollection services,
-			IConfiguration configuration)
+		internal static void RegisterServices(IServiceCollection services)
 		{
-			// ── Identity ─────────────────────────────────────────
+			// ── Existing ──────────────────────────────────────────────────
+			services.AddScoped<IPublicInterface, PublicService>();
+
+			// ── Auth services ─────────────────────────────────────────────
+			services.AddScoped<TokenService>();
+			services.AddScoped<AuthService>();
+			services.AddScoped<RoleService>();
+
+			// ── RBAC engine ───────────────────────────────────────────────
+			services.AddScoped<IRbacService, RbacService>();
+
+			// ── Licensing engine ──────────────────────────────────────────
+			services.AddScoped<ILicenseService, LicenseService>();
+
+			// ── Identity ──────────────────────────────────────────────────
 			services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 			{
-				options.Password.RequireDigit = true;
-				options.Password.RequiredLength = 8;
+				options.Password.RequireDigit = false;
+				options.Password.RequireLowercase = false;
+				options.Password.RequireUppercase = false;
 				options.Password.RequireNonAlphanumeric = false;
-				options.Password.RequireUppercase = true;
-				options.Password.RequireLowercase = true;
-				options.User.RequireUniqueEmail = true;
+				options.Password.RequiredLength = 6;
 			})
 			.AddEntityFrameworkStores<CalciferAppDbContext>()
 			.AddDefaultTokenProviders();
 
-			// ── JWT Authentication ────────────────────────────────
-			var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>()
-				?? throw new InvalidOperationException("JwtSettings not configured.");
-
+			// ── JWT Authentication ─────────────────────────────────────────
 			services.AddAuthentication(options =>
 			{
 				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+				options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 			})
 			.AddJwtBearer(options =>
 			{
+				var sp = services.BuildServiceProvider();
+				var jwtSettings = sp.GetRequiredService<IConfiguration>()
+									.GetSection("JwtSettings").Get<JwtSettings>()!;
+
 				options.TokenValidationParameters = new TokenValidationParameters
 				{
 					ValidateIssuer = true,
@@ -67,48 +69,39 @@ namespace Calcifer.Api.DependencyInversion
 					ValidIssuer = jwtSettings.Issuer,
 					ValidAudience = jwtSettings.Audience,
 					IssuerSigningKey = new SymmetricSecurityKey(
-												Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-					ClockSkew = TimeSpan.Zero   // no grace period
+												  Encoding.UTF8.GetBytes(jwtSettings.Secret))
 				};
 			});
 
-			// ── Authorization policies ───────────────────────────
-			services.AddAuthorization(options =>
+			// ── Identity cookie → return 401/403 JSON ─────────────────────
+			services.ConfigureApplicationCookie(options =>
 			{
-				// Identity-level policies
-				options.AddPolicy("SuperAdminPolicy",
-					p => p.RequireRole("SuperAdmin"));
-
-				options.AddPolicy("AuthenticatedPolicy",
-					p => p.RequireAuthenticatedUser());
-
-				// Example permission-level policies (used alongside [RequirePermission])
-				options.AddPolicy("CanReadHCM",
-					p => p.RequireClaim("perms", "HCM:Employee:Read"));
-
-				options.AddPolicy("CanManageUsers",
-					p => p.RequireClaim("perms", "Administration:UserManagement:Create",
-												  "Administration:UserManagement:Update"));
+				options.Events.OnRedirectToLogin = ctx =>
+				{
+					ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+					return Task.CompletedTask;
+				};
+				options.Events.OnRedirectToAccessDenied = ctx =>
+				{
+					ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+					return Task.CompletedTask;
+				};
 			});
 
-			// ── RBAC Engine ──────────────────────────────────────
-			// Scoped: one instance per HTTP request.
-			// ISOLATED: No license service imported here.
-			services.AddScoped<IRbacService, RbacService>();
+			// ── Authorization policies ────────────────────────────────────
+			services.AddAuthorization(options =>
+			{
+				options.AddPolicy("SuperAdminPolicy",
+					p => p.RequireRole("SUPERADMIN"));
 
-			// ── Auth Services ─────────────────────────────────────
-			services.AddScoped<AuthService>();
-			services.AddScoped<RoleService>();
-			services.AddScoped<TokenService>();
+				options.AddPolicy("AdminPolicy",
+					p => p.RequireRole("SUPERADMIN", "HR_MANAGER"));
 
-			// ── License Services ──────────────────────────────────
-			// ISOLATED: No RBAC service imported here.
-			services.AddScoped<ILicenseService, LicenseService>();
+				options.AddPolicy("ModeratorPolicy",
+					p => p.RequireRole("SUPERADMIN", "HR_MANAGER", "PRODUCTION_MANAGER"));
+			});
 
-			// ── Domain Services ───────────────────────────────────
-			services.AddScoped<IPublicInterface, PublicService>();
-
-			return services;
+			services.AddHttpContextAccessor();
 		}
 	}
 }

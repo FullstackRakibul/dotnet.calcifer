@@ -1,36 +1,26 @@
-﻿// ============================================================
-//  RbacFilter.cs
-//  Two components in one file:
-//
-//  1. [RequirePermission] attribute — decorates endpoints
-//  2. RbacAuthorizationFilter — enforces the permission check
-//
-//  Usage on Minimal API:
-//      app.MapGet("/hr/employees", handler)
-//         .WithMetadata(new RequirePermissionAttribute("HCM", "Employee", "Read"));
-//
-//  Usage on Controller action:
-//      [RequirePermission("HCM", "Employee", "Create")]
-//      public async Task<IActionResult> CreateEmployee(...)
-//
-//  The filter reads claims from the JWT first (fast path).
-//  If the claim is missing it falls back to the DB via IRbacService.
-// ============================================================
-
-using Calcifer.Api.DbContexts.Rbac.Interfaces;
+﻿
+using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Interface.Licensing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Calcifer.Api.AuthHandler.Filters
 {
-	// ── Attribute ────────────────────────────────────────────────
-
+	// ════════════════════════════════════════════════════════════════════════
+	//  [RequirePermission]  —  decorate MVC controller actions
+	//
+	//  Usage:
+	//    [HttpGet("employees")]
+	//    [RequirePermission("HCM", "Employee", "Read")]
+	//    public async Task<IActionResult> GetEmployees() { ... }
+	// ════════════════════════════════════════════════════════════════════════
 	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
-	public class RequirePermissionAttribute : Attribute
+	public sealed class RequirePermissionAttribute : Attribute
 	{
 		public string Module { get; }
 		public string Resource { get; }
 		public string Action { get; }
+		public string Key => $"{Module}:{Resource}:{Action}";
 
 		public RequirePermissionAttribute(string module, string resource, string action)
 		{
@@ -38,66 +28,222 @@ namespace Calcifer.Api.AuthHandler.Filters
 			Resource = resource;
 			Action = action;
 		}
-
-		/// <summary>Canonical claim string for fast JWT lookup.</summary>
-		public string ClaimValue => $"{Module}:{Resource}:{Action}";
 	}
 
-	// ── Action filter (controllers) ──────────────────────────────
-
-	public class RbacAuthorizationFilter : IAsyncAuthorizationFilter
+	// ════════════════════════════════════════════════════════════════════════
+	//  RbacAuthorizationFilter  —  MVC IAsyncAuthorizationFilter
+	//
+	//  Reads [RequirePermission] attributes from the action/controller,
+	//  then runs dual-path check. ALL declared permissions must be satisfied
+	//  (AND logic — multiple attributes = stricter, not looser).
+	// ════════════════════════════════════════════════════════════════════════
+	public sealed class RbacAuthorizationFilter : IAsyncAuthorizationFilter
 	{
 		private readonly IRbacService _rbac;
-		private readonly ILogger<RbacAuthorizationFilter> _logger;
 
-		public RbacAuthorizationFilter(IRbacService rbac, ILogger<RbacAuthorizationFilter> logger)
-		{
-			_rbac = rbac;
-			_logger = logger;
-		}
+		public RbacAuthorizationFilter(IRbacService rbac) => _rbac = rbac;
 
 		public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
 		{
-			var requirement = context.ActionDescriptor.EndpointMetadata
-				.OfType<RequirePermissionAttribute>()
-				.FirstOrDefault();
-
-			if (requirement == null) return; // no restriction on this endpoint
-
 			var user = context.HttpContext.User;
 
-			if (user?.Identity?.IsAuthenticated != true)
+			if (user?.Identity == null || !user.Identity.IsAuthenticated)
 			{
-				context.Result = new UnauthorizedResult();
+				context.Result = new UnauthorizedObjectResult(new
+				{
+					status = false,
+					message = "Unauthorized. Please provide a valid token.",
+					errorCode = "AUTH_REQUIRED"
+				});
 				return;
 			}
 
-			var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-			if (string.IsNullOrEmpty(userId))
+			var userId = user.FindFirst("ID")?.Value;
+			if (string.IsNullOrWhiteSpace(userId))
 			{
-				context.Result = new UnauthorizedResult();
+				context.Result = new UnauthorizedObjectResult(new
+				{
+					status = false,
+					message = "Token is missing the user ID claim.",
+					errorCode = "INVALID_TOKEN"
+				});
 				return;
 			}
 
-			// Fast path: check JWT claim
-			var claimValue = requirement.ClaimValue;
-			if (user.HasClaim("perms", claimValue) ||
-				user.HasClaim("perms", $"{requirement.Module}:*:*") ||
-				user.HasClaim("perms", "*:*:*"))
-			{
-				return; // authorized
-			}
+			// Collect ALL [RequirePermission] attributes on this action
+			var requirements = context.ActionDescriptor.EndpointMetadata
+				.OfType<RequirePermissionAttribute>()
+				.ToList();
 
-			// Slow path: DB check (for fresh overrides not yet in token)
-			var hasPermission = await _rbac.HasPermissionAsync(
-				userId, requirement.Module, requirement.Resource, requirement.Action);
+			if (requirements.Count == 0) return; // no RBAC requirement on this endpoint
 
-			if (!hasPermission)
+			// Dual-path check: fast JWT → slow DB fallback
+			var jwtPerms = GetJwtPermissions(user);
+
+			foreach (var req in requirements)
 			{
-				_logger.LogWarning(
-					"User {UserId} denied access to {Claim}", userId, claimValue);
-				context.Result = new ForbidResult();
+				var allowed = jwtPerms != null
+					? JwtHasPermission(jwtPerms, req.Module, req.Resource, req.Action)
+					: await _rbac.HasPermissionAsync(userId, req.Module, req.Resource, req.Action);
+
+				if (!allowed)
+				{
+					context.Result = new ObjectResult(new
+					{
+						status = false,
+						message = $"Access denied. Required permission: {req.Key}",
+						errorCode = "PERMISSION_DENIED",
+						required = req.Key
+					})
+					{ StatusCode = StatusCodes.Status403Forbidden };
+					return;
+				}
 			}
 		}
+
+		private static IReadOnlySet<string>? GetJwtPermissions(System.Security.Claims.ClaimsPrincipal user)
+		{
+			var perms = user.FindAll("perms").Select(c => c.Value).ToHashSet();
+			return perms.Count > 0 ? perms : null;
+		}
+
+		private static bool JwtHasPermission(IReadOnlySet<string> perms,
+			string module, string resource, string action)
+		{
+			return perms.Contains($"{module}:{resource}:{action}")
+				|| perms.Contains($"{module}:*:*")
+				|| perms.Contains("*:*:*");
+		}
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  RbacEndpointFilter  —  IEndpointFilter for Minimal APIs
+	//
+	//  Usage (via extension):
+	//    group.MapGet("/employees", handler)
+	//         .RequireRbac("HCM", "Employee", "Read");
+	// ════════════════════════════════════════════════════════════════════════
+	public sealed class RbacEndpointFilter : IEndpointFilter
+	{
+		private readonly string _module;
+		private readonly string _resource;
+		private readonly string _action;
+		private readonly string _key;
+
+		public RbacEndpointFilter(string module, string resource, string action)
+		{
+			_module = module;
+			_resource = resource;
+			_action = action;
+			_key = $"{module}:{resource}:{action}";
+		}
+
+		public async ValueTask<object?> InvokeAsync(
+			EndpointFilterInvocationContext context,
+			EndpointFilterDelegate next)
+		{
+			var httpContext = context.HttpContext;
+			var user = httpContext.User;
+
+			if (user?.Identity == null || !user.Identity.IsAuthenticated)
+			{
+				return Results.Json(new
+				{
+					status = false,
+					message = "Unauthorized. Please provide a valid token.",
+					errorCode = "AUTH_REQUIRED"
+				}, statusCode: StatusCodes.Status401Unauthorized);
+			}
+
+			var userId = user.FindFirst("ID")?.Value;
+			if (string.IsNullOrWhiteSpace(userId))
+			{
+				return Results.Json(new
+				{
+					status = false,
+					message = "Token is missing the user ID claim.",
+					errorCode = "INVALID_TOKEN"
+				}, statusCode: StatusCodes.Status401Unauthorized);
+			}
+
+			// Fast path: JWT perms claim
+			var jwtPerms = user.FindAll("perms").Select(c => c.Value).ToHashSet();
+			bool allowed;
+
+			if (jwtPerms.Count > 0)
+			{
+				allowed = jwtPerms.Contains(_key)
+					   || jwtPerms.Contains($"{_module}:*:*")
+					   || jwtPerms.Contains("*:*:*");
+			}
+			else
+			{
+				// Slow path: DB query via IRbacService
+				var rbac = httpContext.RequestServices.GetRequiredService<IRbacService>();
+				allowed = await rbac.HasPermissionAsync(userId, _module, _resource, _action);
+			}
+
+			if (!allowed)
+			{
+				return Results.Json(new
+				{
+					status = false,
+					message = $"Access denied. Required permission: {_key}",
+					errorCode = "PERMISSION_DENIED",
+					required = _key
+				}, statusCode: StatusCodes.Status403Forbidden);
+			}
+
+			return await next(context);
+		}
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  LicenseEndpointFilter  —  gate requests by feature flag
+	//  Runs BEFORE RbacEndpointFilter in the pipeline.
+	// ════════════════════════════════════════════════════════════════════════
+	public sealed class LicenseEndpointFilter : IEndpointFilter
+	{
+		private readonly string _featureCode;
+
+		public LicenseEndpointFilter(string featureCode) => _featureCode = featureCode;
+
+		public async ValueTask<object?> InvokeAsync(
+			EndpointFilterInvocationContext context,
+			EndpointFilterDelegate next)
+		{
+			var license = context.HttpContext.RequestServices
+								 .GetRequiredService<ILicenseService>();
+
+			var enabled = await license.IsFeatureEnabledAsync(_featureCode);
+			if (!enabled)
+			{
+				return Results.Json(new
+				{
+					status = false,
+					message = $"Module '{_featureCode}' is not enabled on your license.",
+					errorCode = "LICENSE_FEATURE_DISABLED"
+				}, statusCode: StatusCodes.Status402PaymentRequired);
+			}
+
+			return await next(context);
+		}
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  Extension helpers  —  fluent Minimal API builder
+	// ════════════════════════════════════════════════════════════════════════
+	public static class RbacFilterExtensions
+	{
+		/// <summary>Protect a minimal API endpoint with a permission check.</summary>
+		public static RouteHandlerBuilder RequireRbac(
+			this RouteHandlerBuilder builder,
+			string module, string resource, string action)
+			=> builder.AddEndpointFilter(new RbacEndpointFilter(module, resource, action));
+
+		/// <summary>Gate a minimal API endpoint behind a license feature flag.</summary>
+		public static RouteHandlerBuilder RequireLicense(
+			this RouteHandlerBuilder builder, string featureCode)
+			=> builder.AddEndpointFilter(new LicenseEndpointFilter(featureCode));
 	}
 }

@@ -1,73 +1,74 @@
-﻿// ============================================================
-//  RbacEnums.cs
-//  All RBAC-related enumerations in one file.
-//  Kept together so seeder and filter share the same constants.
-// ============================================================
-
-namespace Calcifer.Api.DbContexts.Rbac.Enums
+﻿namespace Calcifer.Api.DbContexts.Rbac.Enums
 {
-	// ── Modules (matches Permission.Module column) ───────────────
-	// Add new modules here — seeder picks them up automatically.
-	public enum RbacModule
+	// ════════════════════════════════════════════════════════════════════════
+	//  RbacModule  —  all 15 modules from the permission matrix
+	//  Used as the Module field value in Permission rows.
+	//  String value matches what is stored in the DB.
+	// ════════════════════════════════════════════════════════════════════════
+	public static class RbacModule
 	{
-		HCM,
-		Merchandising,
-		SampleDev,
-		Production,
-		Inventory,
-		SupplyChain,
-		Quality,
-		Finance,
-		IE,
-		Commercial,
-		Compliance,
-		Administration,
-		MIS,
-		Projects,
-		OfficeDocs
+		public const string HCM = "HCM";
+		public const string Merchandising = "Merchandising";
+		public const string SampleDev = "SampleDev";
+		public const string Production = "Production";
+		public const string Inventory = "Inventory";
+		public const string SupplyChain = "SupplyChain";
+		public const string Quality = "Quality";
+		public const string Finance = "Finance";
+		public const string IE = "IE";
+		public const string Commercial = "Commercial";
+		public const string Compliance = "Compliance";
+		public const string Administration = "Administration";
+		public const string MIS = "MIS";
+		public const string Projects = "Projects";
+		public const string OfficeDocs = "OfficeDocs";
+
+		public static readonly IReadOnlyList<string> All =
+		[
+			HCM, Merchandising, SampleDev, Production, Inventory,
+			SupplyChain, Quality, Finance, IE, Commercial,
+			Compliance, Administration, MIS, Projects, OfficeDocs
+		];
 	}
 
-	// ── Actions ─────────────────────────────────────────────────
-	[Flags]
-	public enum RbacAction
+	// ════════════════════════════════════════════════════════════════════════
+	//  RbacAction  —  the five allowed action verbs
+	// ════════════════════════════════════════════════════════════════════════
+	public static class RbacAction
 	{
-		None = 0,
-		Create = 1 << 0,   // 1
-		Read = 1 << 1,   // 2
-		Update = 1 << 2,   // 4
-		Delete = 1 << 3,   // 8
-		Export = 1 << 4,   // 16
-		All = Create | Read | Update | Delete   // 15  (no Export by default)
+		public const string Create = "Create";
+		public const string Read = "Read";
+		public const string Update = "Update";
+		public const string Delete = "Delete";
+		public const string Export = "Export";
+
+		public static readonly IReadOnlyList<string> All = [Create, Read, Update, Delete, Export];
+		public static readonly IReadOnlyList<string> Crud = [Create, Read, Update, Delete];
+		public static readonly IReadOnlyList<string> ReadOnly = [Read];
 	}
 
-	// ── Built-in role codes (the seed names) ────────────────────
-	// Used by seeder and by RbacClaimTypes to avoid magic strings.
+	// ════════════════════════════════════════════════════════════════════════
+	//  DefaultRoles  —  the six seeded role names
+	// ════════════════════════════════════════════════════════════════════════
 	public static class DefaultRoles
 	{
-		public const string SuperAdmin = "SuperAdmin";
-		public const string HRManager = "HRManager";
-		public const string ProductionManager = "ProductionManager";
-		public const string StoreManager = "StoreManager";
-		public const string Employee = "Employee";
-		public const string Viewer = "Viewer";
+		public const string SuperAdmin = "SUPERADMIN";
+		public const string HrManager = "HR_MANAGER";
+		public const string ProductionManager = "PRODUCTION_MANAGER";
+		public const string StoreManager = "STORE_MANAGER";
+		public const string Employee = "EMPLOYEE";
+		public const string Viewer = "VIEWER";
 	}
 
-	// ── CommonStatus values (seed IDs match RbacStatusSeeder) ───
-	public enum CommonStatusEnum : byte
+	// ════════════════════════════════════════════════════════════════════════
+	//  OrgUnitLevel  —  hierarchy levels for OrganizationUnit
+	// ════════════════════════════════════════════════════════════════════════
+	public static class OrgUnitLevel
 	{
-		Inactive = 0,
-		Active = 1,
-		Deleted = 2,
-		Suspended = 3
-	}
-
-	// ── OrganizationUnit levels ──────────────────────────────────
-	public enum OrgUnitLevel : byte
-	{
-		Root = 0,
-		Company = 1,
-		Division = 2,
-		Department = 3,
-		Team = 4
+		public const string Root = "Root";
+		public const string Company = "Company";
+		public const string Division = "Division";
+		public const string Department = "Department";
+		public const string Team = "Team";
 	}
 }

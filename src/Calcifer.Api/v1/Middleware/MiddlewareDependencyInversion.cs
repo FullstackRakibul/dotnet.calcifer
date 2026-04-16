@@ -1,54 +1,41 @@
-using Calcifer.Api.AuthHandler.MinimalApis;
 using Calcifer.Api.AuthHandler.Filters;
-using Microsoft.AspNetCore.Http;
+using Calcifer.Api.AuthHandler.MinimalApis;
 using Calcifer.Api.DbContexts.MinimalApis.PublicApis;
+using Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples;
+using Calcifer.Api.DbContexts.Rbac.MinimalApis;
 
 namespace Calcifer.Api.Middleware
 {
-    public static class MiddlewareDependencyInversion
-    {
+	public static class MiddlewareDependencyInversion
+	{
 		public static WebApplication ApplyAppMiddleware(this WebApplication app)
 		{
-			// Add middlewares here, one by one.
 			app.UseHttpsRedirection();
 			app.UseAuthentication();
 			app.UseAuthorization();
-
 			return app;
 		}
 
 		public static WebApplication ApplicationMinimalApis(this WebApplication app)
 		{
-			
+			// Global /api/v1 group — applies AuthorizationFilter (401 guard) to all routes
 			var api = app.MapGroup("/api/v1")
-				.AddEndpointFilter<AuthorizationFilter>();
-			// Instead of api.Use(...), use api.AddEndpointFilter(...) for per-group logic
-			//api.AddEndpointFilter(async (context, next) =>
-			//{
-			//	var httpContext = context.HttpContext;
-			//	var user = httpContext.User;
-			//	if (user?.Identity == null || !user.Identity.IsAuthenticated)
-			//	{
-			//		httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-			//		httpContext.Response.ContentType = "application/json";
-			//		await httpContext.Response.WriteAsJsonAsync(new { message = "User is unauthorized" });
-			//		return Results.StatusCode(StatusCodes.Status401Unauthorized);
-			//	}
+						 .AddEndpointFilter<AuthorizationFilter>();
 
-			//	return await next(context);
-			//});
+			// ── Auth / Identity ───────────────────────────────────────────
+			api.MapIdentityApis();
 
-			// If you still want ASP.NET Core authorization policies for some endpoints,
-			// apply them per-endpoint (e.g., .RequireAuthorization()) when mapping those endpoints.
-
-			//api.WithRequestTimeout("3000");
-
-			 api.MapIdentityApis();
-
-            // Register all API groups here
-
+			// ── Public CRUD (existing) ────────────────────────────────────
 			api.MapPublicCrudApi();
-			api.MapLicenseApis();
+
+			// ── RBAC Management  (12 routes) ──────────────────────────────
+			api.RegisterRbacApis();
+
+			// ── Future module APIs go here ────────────────────────────────
+			// api.RegisterHcmApis();
+			// api.RegisterInventoryApis();
+			api.FinancePayrollApis();
+
 
 			return app;
 		}

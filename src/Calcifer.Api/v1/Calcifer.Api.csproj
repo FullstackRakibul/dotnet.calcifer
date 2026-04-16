@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DbContexts\Rbac\NewFolder\**" />
+    <Content Remove="DbContexts\Rbac\NewFolder\**" />
+    <EmbeddedResource Remove="DbContexts\Rbac\NewFolder\**" />
+    <None Remove="DbContexts\Rbac\NewFolder\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
@@ -21,7 +28,6 @@
   <ItemGroup>
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Models\Seeders\" />
-    <Folder Include="DbContexts\Rbac\NewFolder\" />
     <Folder Include="Migrations\" />
     <Folder Include="Services\Common\" />
   </ItemGroup>

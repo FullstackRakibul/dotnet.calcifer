@@ -1,74 +1,120 @@
-﻿// ============================================================
-//  RbacDTOs.cs — all DTOs for the RBAC module in one file.
-// ============================================================
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Calcifer.Api.DbContexts.Rbac.DTOs
+namespace Calcifer.Api.DTOs.RbacDTO
 {
-	// ── Outbound ─────────────────────────────────────────────────
+	// ════════════════════════════════════════════════════════════════════════
+	//  PERMISSION DTOs
+	// ════════════════════════════════════════════════════════════════════════
 
-	public class PermissionDto
+	public record PermissionDto(
+		int Id,
+		string Module,
+		string Resource,
+		string Action,
+		string? Description
+	)
 	{
-		public int Id { get; set; }
-		public string Module { get; set; } = string.Empty;
-		public string Resource { get; set; } = string.Empty;
-		public string Action { get; set; } = string.Empty;
-		public string? Description { get; set; }
-		public string ClaimValue => $"{Module}:{Resource}:{Action}";
+		/// <summary>Canonical key used in cache / JWT: "Module:Resource:Action"</summary>
+		public string Key => $"{Module}:{Resource}:{Action}";
 	}
 
-	public class UserUnitRoleDto
-	{
-		public string RoleId { get; set; } = string.Empty;
-		public string RoleName { get; set; } = string.Empty;
-		public int UnitId { get; set; }
-		public string UnitName { get; set; } = string.Empty;
-		public DateTime ValidFrom { get; set; }
-		public DateTime? ValidTo { get; set; }
-		public bool IsExpired => ValidTo.HasValue && ValidTo < DateTime.UtcNow;
-	}
+	// ════════════════════════════════════════════════════════════════════════
+	//  ROLE PERMISSION DTOs
+	// ════════════════════════════════════════════════════════════════════════
 
-	public class UserPermissionSummaryDto
-	{
-		public string UserId { get; set; } = string.Empty;
-		public string UserName { get; set; } = string.Empty;
-		public IEnumerable<UserUnitRoleDto> UnitRoles { get; set; } = [];
-		public IEnumerable<string> EffectivePermissions { get; set; } = [];
-		public IEnumerable<DirectOverrideDto> DirectOverrides { get; set; } = [];
-	}
+	public record AssignRolePermissionRequest(
+		[Required] int PermissionId
+	);
 
-	public class DirectOverrideDto
-	{
-		public int PermissionId { get; set; }
-		public string ClaimValue { get; set; } = string.Empty;
-		public bool IsGranted { get; set; }
-		public DateTime? ExpiresAt { get; set; }
-		public string? Reason { get; set; }
-		public string? GrantedBy { get; set; }
-	}
+	public record RolePermissionDto(
+		string RoleId,
+		string RoleName,
+		int PermissionId,
+		string Module,
+		string Resource,
+		string Action
+	);
 
-	// ── Inbound ──────────────────────────────────────────────────
+	// ════════════════════════════════════════════════════════════════════════
+	//  USER UNIT ROLE DTOs
+	// ════════════════════════════════════════════════════════════════════════
 
-	public class AssignUnitRoleRequest
-	{
-		public string UserId { get; set; } = string.Empty;
-		public string RoleId { get; set; } = string.Empty;
-		public int UnitId { get; set; }
-		public DateTime? ValidTo { get; set; }
-		public string? Notes { get; set; }
-	}
+	public record AssignUnitRoleRequest(
+		[Required] string RoleId,
+		[Required] int UnitId,
+		DateTime? ValidFrom,
+		DateTime? ValidTo
+	);
 
-	public class SetDirectPermissionRequest
-	{
-		public string UserId { get; set; } = string.Empty;
-		public int PermissionId { get; set; }
-		public bool IsGranted { get; set; } = true;
-		public DateTime? ExpiresAt { get; set; }
-		public string? Reason { get; set; }
-	}
+	public record RevokeUnitRoleRequest(
+		[Required] string RoleId,
+		[Required] int UnitId
+	);
 
-	public class AssignRolePermissionRequest
-	{
-		public string RoleId { get; set; } = string.Empty;
-		public int PermissionId { get; set; }
-	}
+	public record UserUnitRoleDto(
+		string UserId,
+		string RoleId,
+		string RoleName,
+		int UnitId,
+		string UnitName,
+		DateTime? ValidFrom,
+		DateTime? ValidTo,
+		bool IsActive
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  DIRECT PERMISSION DTOs
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record SetDirectPermissionRequest(
+		[Required] int PermissionId,
+		[Required] bool IsGranted,
+		DateTime? ExpiresAt
+	);
+
+	public record DirectPermissionDto(
+		string UserId,
+		int PermissionId,
+		string Module,
+		string Resource,
+		string Action,
+		bool IsGranted,
+		string? GrantedBy,
+		DateTime? ExpiresAt
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  EFFECTIVE PERMISSION SUMMARY  (GET /rbac/users/{id}/permissions)
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record UserPermissionSummary(
+		string UserId,
+		string UserName,
+		string Email,
+		List<string> Roles,
+		List<string> EffectivePermissions,   // "Module:Resource:Action" keys
+		List<DirectPermissionDto> DirectOverrides,
+		DateTime CacheGeneratedAt,
+		bool CacheIsStale            // true if cache is older than 5 min
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  ORG UNIT DTOs
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record CreateOrgUnitRequest(
+		[Required, MaxLength(100)] string Name,
+		[MaxLength(50)] string? Code,
+		[MaxLength(50)] string? Level,
+		int? ParentId
+	);
+
+	public record OrgUnitDto(
+		int Id,
+		string Name,
+		string? Code,
+		string? Level,
+		int? ParentId,
+		List<OrgUnitDto> Children
+	);
 }
