@@ -17,7 +17,8 @@ namespace Calcifer.Api.Services.Rbac
 		private readonly ILogger<RbacService> _log;
 
 		// Sentinel UnitId used for the global PermissionCache row
-		private const int GlobalUnitId = 0;
+		// null = global (cross-unit) — matches the entity's nullable FK to OrganizationUnits
+		private static readonly int? GlobalUnitId = null;
 
 		public RbacService(
 			CalciferAppDbContext db,
