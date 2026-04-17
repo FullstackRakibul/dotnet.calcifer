@@ -27,6 +27,7 @@ using System.Security.Claims;
 using Calcifer.Api.DTOs;
 using Calcifer.Api.DTOs.AuthDTO;
 using Calcifer.Api.Services.AuthService;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Calcifer.Api.AuthHandler.MinimalApis
 {
@@ -59,6 +60,7 @@ namespace Calcifer.Api.AuthHandler.MinimalApis
             // POST /auth/login — open, no auth required
             auth.MapPost("/login", async (LoginRequestDto dto, AuthService authService) =>
             {
+                //return Results.Ok("this is a testttttttttttt.............s");
                 var (success, message, response) = await authService.LoginAsync(dto);
 
                 return success

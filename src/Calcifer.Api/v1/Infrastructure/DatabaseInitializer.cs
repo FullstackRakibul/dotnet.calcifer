@@ -13,6 +13,7 @@
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DbContexts.Common;
+using Calcifer.Api.DbContexts.Rbac.Entities;
 using Calcifer.Api.DbContexts.Rbac.Enums;
 using Calcifer.Api.DbContexts.Rbac.Seeds;
 using Microsoft.AspNetCore.Identity;
@@ -35,7 +36,17 @@ namespace Calcifer.Api.Infrastructure
 
 			// ── Step 2: OrganizationUnit tree ─────────────────────
 			await OrgUnitSeeder.SeedAsync(db, logger);
-
+			//if (!await db.OrganizationUnits.AnyAsync(u => u.Id == 1))
+			//{
+			//	db.OrganizationUnits.Add(new OrganizationUnit
+			//	{
+			//		Id = 1,
+			//		Name = "Root",
+			//		ParentId = null,
+			//		IsActive = true
+			//	});
+			//	await db.SaveChangesAsync();
+			//}
 			// ── Step 3: RBAC roles + permissions + matrix ─────────
 			await RbacPermissionSeeder.SeedAsync(services);
 

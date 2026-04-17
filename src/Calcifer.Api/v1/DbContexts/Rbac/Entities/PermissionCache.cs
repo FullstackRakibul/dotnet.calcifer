@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  PermissionCache.cs
 //  Stores the resolved (flattened) permission set for each
 //  user per organizational unit.
@@ -29,15 +29,15 @@ namespace Calcifer.Api.DbContexts.Rbac.Entities
 		public long Id { get; set; }
 
 		[Required]
-		public string UserId { get; set; } = string.Empty;
+		public string? UserId { get; set; } = string.Empty;
 
 		/// <summary>Null = global (all units merged).</summary>
 		public int? UnitId { get; set; }
 
 		[Required]
-		public string PermissionSetJson { get; set; } = "[]";
+		public string PermissionsJson { get; set; } = "[]";
 
-		public DateTime ComputedAt { get; set; } = DateTime.UtcNow;
+		public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
 
 		public DateTime? InvalidatedAt { get; set; }
 

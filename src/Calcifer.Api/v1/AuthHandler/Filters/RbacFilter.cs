@@ -1,6 +1,5 @@
-﻿
+
 using Calcifer.Api.Interface.Rbac;
-using Calcifer.Api.Interface.Licensing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -199,38 +198,6 @@ namespace Calcifer.Api.AuthHandler.Filters
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
-	//  LicenseEndpointFilter  —  gate requests by feature flag
-	//  Runs BEFORE RbacEndpointFilter in the pipeline.
-	// ════════════════════════════════════════════════════════════════════════
-	public sealed class LicenseEndpointFilter : IEndpointFilter
-	{
-		private readonly string _featureCode;
-
-		public LicenseEndpointFilter(string featureCode) => _featureCode = featureCode;
-
-		public async ValueTask<object?> InvokeAsync(
-			EndpointFilterInvocationContext context,
-			EndpointFilterDelegate next)
-		{
-			var license = context.HttpContext.RequestServices
-								 .GetRequiredService<ILicenseService>();
-
-			var enabled = await license.IsFeatureEnabledAsync(_featureCode);
-			if (!enabled)
-			{
-				return Results.Json(new
-				{
-					status = false,
-					message = $"Module '{_featureCode}' is not enabled on your license.",
-					errorCode = "LICENSE_FEATURE_DISABLED"
-				}, statusCode: StatusCodes.Status402PaymentRequired);
-			}
-
-			return await next(context);
-		}
-	}
-
-	// ════════════════════════════════════════════════════════════════════════
 	//  Extension helpers  —  fluent Minimal API builder
 	// ════════════════════════════════════════════════════════════════════════
 	public static class RbacFilterExtensions
@@ -240,10 +207,5 @@ namespace Calcifer.Api.AuthHandler.Filters
 			this RouteHandlerBuilder builder,
 			string module, string resource, string action)
 			=> builder.AddEndpointFilter(new RbacEndpointFilter(module, resource, action));
-
-		/// <summary>Gate a minimal API endpoint behind a license feature flag.</summary>
-		public static RouteHandlerBuilder RequireLicense(
-			this RouteHandlerBuilder builder, string featureCode)
-			=> builder.AddEndpointFilter(new LicenseEndpointFilter(featureCode));
 	}
 }

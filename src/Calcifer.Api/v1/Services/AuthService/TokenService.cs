@@ -22,7 +22,7 @@ using System.Security.Claims;
 using System.Text;
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Rbac.Interfaces;
+using Calcifer.Api.Interface.Rbac;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -64,7 +64,7 @@ namespace Calcifer.Api.Services.AuthService
 			// ── 3. Unit-role context claims ───────────────────────
 			// Tells the frontend which role the user has at each unit.
 			var unitRoles = await _rbac.GetUserUnitRolesAsync(user.Id);
-			foreach (var ur in unitRoles.Where(ur => !ur.IsExpired))
+			foreach (var ur in unitRoles.Where(ur => ur.IsActive))
 			{
 				claims.Add(new Claim("unit_role",
 					$"{ur.UnitName}:{ur.RoleName}"));

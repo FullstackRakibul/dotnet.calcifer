@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  RolePermission.cs
 //  Join table: ApplicationRole ↔ Permission
 //  Composite PK: (RoleId, PermissionId)
@@ -11,11 +11,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Calcifer.Api.DbContexts.AuthModels;
+using Calcifer.Api.DbContexts.Common;
 
 namespace Calcifer.Api.DbContexts.Rbac.Entities
 {
 	[Table("RolePermissions")]
-	public class RolePermission
+	public class RolePermission : AuditBase
 	{
 		// ── Composite PK (configured in OnModelCreating) ─────────
 		[Required]
@@ -26,6 +27,9 @@ namespace Calcifer.Api.DbContexts.Rbac.Entities
 		// ── Audit ────────────────────────────────────────────────
 		public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
 		public string? AssignedBy { get; set; }
+
+		// ── Status ───────────────────────────────────────────────
+		public int StatusId { get; set; } = 1;
 
 		// ── Navigation ───────────────────────────────────────────
 		[ForeignKey("RoleId")]

@@ -68,7 +68,7 @@ namespace Calcifer.Api.Services.AuthService
             // Assign initial role — defaults to Employee if not specified
             // Guard: only SuperAdmin can assign privileged roles
             var roleToAssign = dto.InitialRole ?? DefaultRoles.Employee;
-            var privilegedRoles = new[] { DefaultRoles.SuperAdmin, DefaultRoles.HRManager, DefaultRoles.ProductionManager, DefaultRoles.StoreManager };
+            var privilegedRoles = new[] { DefaultRoles.SuperAdmin, DefaultRoles.HrManager, DefaultRoles.ProductionManager, DefaultRoles.StoreManager };
 
             if (privilegedRoles.Contains(roleToAssign) && callerRole != DefaultRoles.SuperAdmin)
                 roleToAssign = DefaultRoles.Employee;

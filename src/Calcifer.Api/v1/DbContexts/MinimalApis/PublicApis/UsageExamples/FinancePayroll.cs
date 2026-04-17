@@ -1,5 +1,5 @@
-﻿using Calcifer.Api.AuthHandler.Filters;
-using Calcifer.Api.DbContexts.Rbac.Interfaces;
+using Calcifer.Api.AuthHandler.Filters;
+using Calcifer.Api.Interface.Rbac;
 namespace Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples
 {
 	/// <summary>Stub interface — replace with real implementation when Finance module is built.</summary>
@@ -7,6 +7,16 @@ namespace Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples
 	{
 		Task<IEnumerable<object>> GetAllAsync();
 		Task<byte[]> ExportAsync();
+	}
+
+	/// <summary>Placeholder implementation — returns empty data until the Finance module is built.</summary>
+	public class StubPayrollService : IPayrollService
+	{
+		public Task<IEnumerable<object>> GetAllAsync()
+			=> Task.FromResult<IEnumerable<object>>(Array.Empty<object>());
+
+		public Task<byte[]> ExportAsync()
+			=> Task.FromResult(Array.Empty<byte>());
 	}
 
 	public static class FinancePayroll

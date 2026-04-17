@@ -8,6 +8,7 @@ using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
 using Calcifer.Api.Services.LicenseService;
 using Calcifer.Api.Services.Rbac;
+using Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -19,7 +20,7 @@ namespace Calcifer.Api.DependencyInversion
 {
 	public class DependencyInversion
 	{
-		internal static void RegisterServices(IServiceCollection services)
+		internal static void RegisterServices(IServiceCollection services, IConfiguration configuration)
 		{
 			// ── Existing ──────────────────────────────────────────────────
 			services.AddScoped<IPublicInterface, PublicService>();
@@ -34,6 +35,9 @@ namespace Calcifer.Api.DependencyInversion
 
 			// ── Licensing engine ──────────────────────────────────────────
 			services.AddScoped<ILicenseService, LicenseService>();
+
+			// ── Usage example stubs (replace with real implementations) ──
+			services.AddScoped<IPayrollService, StubPayrollService>();
 
 			// ── Identity ──────────────────────────────────────────────────
 			services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -69,7 +73,7 @@ namespace Calcifer.Api.DependencyInversion
 					ValidIssuer = jwtSettings.Issuer,
 					ValidAudience = jwtSettings.Audience,
 					IssuerSigningKey = new SymmetricSecurityKey(
-												  Encoding.UTF8.GetBytes(jwtSettings.Secret))
+													Encoding.UTF8.GetBytes(jwtSettings.Secret))
 				};
 			});
 

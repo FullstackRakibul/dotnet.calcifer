@@ -8,6 +8,7 @@ namespace Calcifer.Api.DTOs.LicenseDTO
 		string LicenseKey,
 		string OrganizationName,
 		string? ContactEmail,
+		int LicenseTypeId,
 		string LicenseTypeName,
 		DateTime IssuedAt,
 		DateTime ExpiresAt,
@@ -15,8 +16,8 @@ namespace Calcifer.Api.DTOs.LicenseDTO
 		bool IsActive,
 		bool IsExpired,
 		bool IsEffective,
-		int ActiveActivations,
-		List<LicenseFeatureDto> Features
+		int ActiveActivationCount,
+		IEnumerable<LicenseFeatureDto> Features
 	);
 
 	public record LicenseFeatureDto(
@@ -26,12 +27,26 @@ namespace Calcifer.Api.DTOs.LicenseDTO
 		bool IsEnabled
 	);
 
+	public record LicenseValidationResultDto
+	{
+		public bool IsValid { get; init; }
+		public string? Message { get; init; }
+		public string? OrganizationName { get; init; }
+		public DateTime? ExpiresAt { get; init; }
+		public IEnumerable<string>? EnabledFeatures { get; init; }
+	}
+
+	public record ValidateLicenseRequest(
+		[Required, MaxLength(250)] string LicenseKey
+	);
+
 	public record CreateLicenseRequest(
 		[Required, MaxLength(100)] string OrganizationName,
 		[MaxLength(100)] string? ContactEmail,
 		[Required] int LicenseTypeId,
 		[Required] DateTime ExpiresAt,
-		int MaxUsers = 50
+		int MaxUsers = 50,
+		List<string>? FeatureCodes = null
 	);
 
 	public record UpdateLicenseRequest(
@@ -48,6 +63,7 @@ namespace Calcifer.Api.DTOs.LicenseDTO
 	);
 
 	public record SetFeatureRequest(
+		[Required, MaxLength(50)] string FeatureCode,
 		[Required] bool IsEnabled
 	);
 }

@@ -1,6 +1,6 @@
-﻿using Calcifer.Api.DbContexts;
+using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Rbac.DTOs;
+using Calcifer.Api.DTOs.RbacDTO;
 using Calcifer.Api.DbContexts.Rbac.Entities;
 using Calcifer.Api.Interface.Rbac;
 using Microsoft.AspNetCore.Identity;

@@ -7,7 +7,7 @@ using Calcifer.Api.Services.AuthService;
 
 namespace Calcifer.Api.Controllers.AuthController
 {
-	[Route("api/v1/[controller]")]
+	[Route("api/v1/Controllers/[controller]")]
 	[ApiController]
 	public class AuthController : ControllerBase
 	{
@@ -37,6 +37,7 @@ namespace Calcifer.Api.Controllers.AuthController
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
 		{
+			return Ok("this is a test ");
 			var (success, token, errorMessage) = await _authService.LoginAsync(dto);
 
 			return success

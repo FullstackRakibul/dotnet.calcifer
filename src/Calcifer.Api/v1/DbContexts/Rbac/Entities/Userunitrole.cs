@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  UserUnitRole.cs
 //  The multi-unit assignment table. This is the core of the
 //  "Goal 2" requirement:
@@ -35,10 +35,13 @@ namespace Calcifer.Api.DbContexts.Rbac.Entities
 		public int UnitId { get; set; }
 
 		// ── Time-bounding ─────────────────────────────────────────
-		public DateTime ValidFrom { get; set; } = DateTime.UtcNow;
+		public DateTime? ValidFrom { get; set; } = DateTime.UtcNow;
 		public DateTime? ValidTo { get; set; }
 
 		public bool IsActive { get; set; } = true;
+
+		// ── Status ───────────────────────────────────────────────
+		public int StatusId { get; set; } = 1;
 
 		[MaxLength(500)]
 		public string? Notes { get; set; }

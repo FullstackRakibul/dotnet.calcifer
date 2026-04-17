@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  OrganizationUnit.cs
 //  Self-referencing tree. Supports: Company → Division →
 //  Department → Team, or any depth you need.
@@ -34,7 +34,7 @@ namespace Calcifer.Api.DbContexts.Rbac.Entities
 		[MaxLength(500)]
 		public string? Description { get; set; }
 
-		public OrgUnitLevel Level { get; set; } = OrgUnitLevel.Department;
+		public string Level { get; set; } = OrgUnitLevel.Department;
 
 		public bool IsActive { get; set; } = true;
 

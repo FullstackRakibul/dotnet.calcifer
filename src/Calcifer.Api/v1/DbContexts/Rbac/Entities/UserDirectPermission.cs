@@ -17,11 +17,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Calcifer.Api.DbContexts.AuthModels;
+using Calcifer.Api.DbContexts.Common;
 
 namespace Calcifer.Api.DbContexts.Rbac.Entities
 {
 	[Table("UserDirectPermissions")]
-	public class UserDirectPermission
+	public class UserDirectPermission : AuditBase
 	{
 		// ── Composite PK (configured in OnModelCreating) ─────────
 		[Required]
@@ -47,9 +48,8 @@ namespace Calcifer.Api.DbContexts.Rbac.Entities
 		[MaxLength(450)]
 		public string? GrantedBy { get; set; }
 
-		// ── Audit ────────────────────────────────────────────────
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-		public DateTime? UpdatedAt { get; set; }
+		// ── Status ───────────────────────────────────────────────
+		public int StatusId { get; set; } = 1;
 
 		// ── Navigation ───────────────────────────────────────────
 		[ForeignKey("UserId")]

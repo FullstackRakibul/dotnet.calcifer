@@ -26,12 +26,22 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 	{
 		public static async Task SeedAsync(CalciferAppDbContext db, ILogger logger)
 		{
-			if (await db.OrganizationUnits.AnyAsync())
+			//if (await db.OrganizationUnits.AnyAsync())
+			//{
+			//	logger.LogInformation("OrgUnitSeeder: units already exist, skipping.");
+			//	return;
+			//}
+			if (!await db.OrganizationUnits.AnyAsync(u => u.Id == 1))
 			{
-				logger.LogInformation("OrgUnitSeeder: units already exist, skipping.");
-				return;
+				db.OrganizationUnits.Add(new OrganizationUnit
+				{
+					Id = 1,
+					Name = "Root",
+					ParentId = null,
+					IsActive = true
+				});
+				await db.SaveChangesAsync();
 			}
-
 			var root = new OrganizationUnit
 			{
 				Code = "ROOT",

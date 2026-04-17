@@ -213,7 +213,7 @@ namespace Calcifer.Api.Services.LicenseService
             await _db.SaveChangesAsync(ct);
 
             // Add features
-            if (request.FeatureCodes.Any())
+            if (request.FeatureCodes?.Any() == true)
             {
                 var features = request.FeatureCodes.Select(code => new LicenseFeature
                 {
@@ -322,28 +322,27 @@ namespace Calcifer.Api.Services.LicenseService
             return $"{hex[..4]}-{hex[4..8]}-{hex[8..12]}-{hex[12..16]}";
         }
 
-        private static LicenseResponseDto MapToDto(License l) => new()
-        {
-            Id = l.Id,
-            LicenseGuid = l.LicenseGuid,
-            LicenseKey = l.LicenseKey,
-            OrganizationName = l.OrganizationName,
-            ContactEmail = l.ContactEmail,
-            LicenseTypeId = l.LicenseTypeId,
-            LicenseTypeName = l.LicenseType?.Name ?? string.Empty,
-            IssuedAt = l.IssuedAt,
-            ExpiresAt = l.ExpiresAt,
-            MaxUsers = l.MaxUsers,
-            IsActive = l.IsActive,
-            IsExpired = l.ExpiresAt < DateTime.UtcNow,
-            ActiveActivationCount = l.Activations.Count(a => a.IsActive),
-            Features = l.LicenseFeatures.Select(f => new LicenseFeatureDto
-            {
-                Id = f.Id,
-                FeatureCode = f.FeatureCode,
-                Description = f.Description,
-                IsEnabled = f.IsEnabled
-            })
-        };
+        private static LicenseResponseDto MapToDto(License l) => new(
+            Id: l.Id,
+            LicenseGuid: l.LicenseGuid,
+            LicenseKey: l.LicenseKey,
+            OrganizationName: l.OrganizationName,
+            ContactEmail: l.ContactEmail,
+            LicenseTypeId: l.LicenseTypeId,
+            LicenseTypeName: l.LicenseType?.Name ?? string.Empty,
+            IssuedAt: l.IssuedAt,
+            ExpiresAt: l.ExpiresAt,
+            MaxUsers: l.MaxUsers,
+            IsActive: l.IsActive,
+            IsExpired: l.ExpiresAt < DateTime.UtcNow,
+            IsEffective: l.IsActive && l.ExpiresAt > DateTime.UtcNow,
+            ActiveActivationCount: l.Activations.Count(a => a.IsActive),
+            Features: l.LicenseFeatures.Select(f => new LicenseFeatureDto(
+                f.Id,
+                f.FeatureCode,
+                f.Description,
+                f.IsEnabled
+            ))
+        );
     }
 }

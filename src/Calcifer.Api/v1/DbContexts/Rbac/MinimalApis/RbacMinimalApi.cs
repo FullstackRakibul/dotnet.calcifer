@@ -1,7 +1,7 @@
-﻿
+
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Rbac.DTOs;
+using Calcifer.Api.DTOs.RbacDTO;
 using Calcifer.Api.Interface.Rbac;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +23,7 @@ namespace Calcifer.Api.DbContexts.Rbac.MinimalApis
 			group.MapGet("/permissions", async (CalciferAppDbContext db) =>
 			{
 				var list = await db.Permissions
-					.Where(p => !p.IsDeleted)
+					.Where(p => p.IsActive)
 					.OrderBy(p => p.Module)
 					.ThenBy(p => p.Resource)
 					.ThenBy(p => p.Action)
@@ -108,16 +108,17 @@ namespace Calcifer.Api.DbContexts.Rbac.MinimalApis
 			})
 			.WithSummary("Assign a user to a role at an org unit");
 
-			// DELETE /rbac/users/{userId}/roles
+			// DELETE /rbac/users/{userId}/roles?roleId=xxx&unitId=yyy
 			group.MapDelete("/users/{userId}/roles", async (
 				string userId,
-				RevokeUnitRoleRequest req,
+				string roleId,
+				int unitId,
 				IRbacService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
 				var (ok, msg) = await rbac.RevokeUserUnitRoleAsync(
-					userId, req.RoleId, req.UnitId, actorId);
+					userId, roleId, unitId, actorId);
 
 				return ok
 					? Results.Ok(new { status = true, message = msg })
@@ -140,8 +141,10 @@ namespace Calcifer.Api.DbContexts.Rbac.MinimalApis
 
 				var perms = await rbac.GetPermissionsAsync(userId);
 				var roles = await userMgr.GetRolesAsync(user);
+				//var cache = await db.PermissionCache.AsNoTracking()
+				//				.FirstOrDefaultAsync(pc => pc.UserId == userId && pc.UnitId == 0);
 				var cache = await db.PermissionCache.AsNoTracking()
-								.FirstOrDefaultAsync(pc => pc.UserId == userId && pc.UnitId == 0);
+								.FirstOrDefaultAsync(pc => pc.UserId == userId && pc.UnitId == null);
 
 				var directOverrides = await db.UserDirectPermissions
 					.Where(udp => udp.UserId == userId && !udp.IsDeleted)

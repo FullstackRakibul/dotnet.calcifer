@@ -18,12 +18,15 @@ namespace Calcifer.Api.Middleware
 
 		public static WebApplication ApplicationMinimalApis(this WebApplication app)
 		{
+
+			// ── Public routes (no auth required) ─────────────────────────
+			var publicApi = app.MapGroup("/api/v1");
+			publicApi.MapIdentityApis();  // login, register — no auth filter here
+
+
 			// Global /api/v1 group — applies AuthorizationFilter (401 guard) to all routes
 			var api = app.MapGroup("/api/v1")
 						 .AddEndpointFilter<AuthorizationFilter>();
-
-			// ── Auth / Identity ───────────────────────────────────────────
-			api.MapIdentityApis();
 
 			// ── Public CRUD (existing) ────────────────────────────────────
 			api.MapPublicCrudApi();

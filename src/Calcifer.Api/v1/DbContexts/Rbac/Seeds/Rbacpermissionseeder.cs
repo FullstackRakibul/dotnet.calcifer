@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  RbacPermissionSeeder.cs
 //  Seeds the COMPLETE permission matrix from your design doc.
 //
@@ -55,7 +55,7 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 		{
 			[DefaultRoles.SuperAdmin] = AllModules(AllActions),
 
-			[DefaultRoles.HRManager] = new()
+			[DefaultRoles.HrManager] = new()
 			{
 				["HCM"] = AllActions,
 				["Merchandising"] = ["Read"],
@@ -212,7 +212,7 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 			var roles = new[]
 			{
 				(DefaultRoles.SuperAdmin,        "Full CRUD on all resources",                          true),
-				(DefaultRoles.HRManager,         "Full CRUD on HCM; Read elsewhere",                   true),
+				(DefaultRoles.HrManager,         "Full CRUD on HCM; Read elsewhere",                   true),
 				(DefaultRoles.ProductionManager, "Full CRUD on Production, QC, IE; Read elsewhere",    true),
 				(DefaultRoles.StoreManager,      "Full CRUD on Inventory; Read on Production",         true),
 				(DefaultRoles.Employee,          "Read-only on own profile and attendance",             true),

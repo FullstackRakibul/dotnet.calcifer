@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  IRbacService.cs
 //
 //  Isolation rule: this interface is the ONLY surface the rest
@@ -9,7 +9,7 @@
 //    Resolution (3) · Cache (2) · Roles (3) · Direct (2) · RoleConfig (3)
 // ============================================================
 
-using Calcifer.Api.DbContexts.Rbac.DTOs;
+using Calcifer.Api.DTOs.RbacDTO;
 
 namespace Calcifer.Api.Interface.Rbac
 {
