@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Calcifer.Api.Migrations
 {
     [DbContext(typeof(CalciferAppDbContext))]
-    [Migration("20260417190542_MakePermissionCacheUnitIdNullable")]
-    partial class MakePermissionCacheUnitIdNullable
+    [Migration("20260418045256_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

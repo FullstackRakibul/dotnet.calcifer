@@ -35,7 +35,7 @@ namespace Calcifer.Api.DbContexts.Rbac.Seeds
 			{
 				db.OrganizationUnits.Add(new OrganizationUnit
 				{
-					Id = 1,
+					//Id = 1,
 					Name = "Root",
 					ParentId = null,
 					IsActive = true
