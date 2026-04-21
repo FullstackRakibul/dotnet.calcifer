@@ -1,6 +1,11 @@
-# =========================================
+# ═══════════════════════════════════════════════
+#  dotnet.calcifer — .gitignore
+#  Calcifer Microservice API Template
+# ═══════════════════════════════════════════════
+
+# ─────────────────────────────────────────────
 # Visual Studio / IDEs
-# =========================================
+# ─────────────────────────────────────────────
 .vs/
 .idea/
 .vscode/*
@@ -13,15 +18,16 @@
 *.suo
 *.vssscc
 *.sln.ide/
+*.rsuser
+*.sln.iml
 
-# =========================================
+# ─────────────────────────────────────────────
 # Build & Publish Artifacts
-# =========================================
+# ─────────────────────────────────────────────
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
 [Pp]ublish/
-publish/
 [Dd]ebug/
 [Rr]elease/
 artifacts/
@@ -31,10 +37,13 @@ TestResults/
 *.snupkg
 *.ilk
 *.exp
+*.dll
+*.exe
+*.pdb
 
-# =========================================
+# ─────────────────────────────────────────────
 # NuGet
-# =========================================
+# ─────────────────────────────────────────────
 *.nuget.props
 *.nuget.targets
 packages/
@@ -42,21 +51,30 @@ project.lock.json
 project.fragment.lock.json
 *.packages.lock.json
 
-# =========================================
-# Template Specific
-# =========================================
-# Generated test projects from `dotnet new`
-TestService/
-InventoryService/
+# ─────────────────────────────────────────────
+# .NET / MSBuild
+# ─────────────────────────────────────────────
+*.cache
+*.log
+*.mdb
+*.pidb
+launchSettings.user.json
+BundleArtifacts/
+MigrationBackup/
+StyleCopReport.xml
+*.DotSettings.user
 
-# =========================================
+# ─────────────────────────────────────────────
 # Configuration & Secrets
-# =========================================
-src/Calcifer.Api/v1/appsettings.json
-appsettings.user.json
-appsettings.Local.json
+#   ⚠ Never commit real connection strings,
+#     JWT secrets, or API keys.
+# ─────────────────────────────────────────────
+appsettings.json
 appsettings.*.json
 !appsettings.Development.json
+!appsettings.Example.json
+appsettings.user.json
+appsettings.Local.json
 .env
 .env.*
 !.env.example
@@ -64,21 +82,17 @@ appsettings.*.json
 *.publishsettings
 secrets.json
 
-# =========================================
-# .NET / MSBuild
-# =========================================
-*.cache
-*.log
-*.mdb
-*.pdb
-*.pidb
-launchSettings.user.json
-BundleArtifacts/
-MigrationBackup/
+# ─────────────────────────────────────────────
+# Template-Specific Ignores
+#   Generated test projects from `dotnet new`
+# ─────────────────────────────────────────────
+TestService/
+InventoryService/
+out/
 
-# =========================================
+# ─────────────────────────────────────────────
 # OS Generated Files
-# =========================================
+# ─────────────────────────────────────────────
 .DS_Store
 .DS_Store?
 ._*
@@ -89,9 +103,9 @@ Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
 
-# =========================================
-# Frontend / Node (For Vue 3 + Pinia)
-# =========================================
+# ─────────────────────────────────────────────
+# Frontend / Node (if applicable)
+# ─────────────────────────────────────────────
 node_modules/
 dist/
 dist-ssr/
@@ -99,4 +113,4 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.eslintcache
+.eslintcache
