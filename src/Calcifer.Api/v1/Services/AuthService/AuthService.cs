@@ -9,6 +9,7 @@ using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DbContexts.Rbac.Enums;
 using Calcifer.Api.DTOs.AuthDTO;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Calcifer.Api.Services.AuthService
 {
@@ -94,49 +95,124 @@ namespace Calcifer.Api.Services.AuthService
 
         // ── Login ────────────────────────────────────────────────
 
-        public async Task<(bool Success, string Message, LoginResponseDto? Response)> LoginAsync(
-            LoginRequestDto dto)
+
+        public async Task<(bool Success, string Message, LoginResponseDto? Response)> LoginAsync(LoginRequestDto dto)
         {
-            // Use IgnoreQueryFilters to allow logging in even if user is soft-deleted
-            // (so we can return a meaningful error rather than "not found")
-            var user = await _userManager.FindByEmailAsync(dto.Email);
-
-            if (user == null)
-                return (false, "Invalid email or password.", null);
-
-            if (user.IsDeleted)
-                return (false, "This account has been deactivated. Contact your administrator.", null);
-
-            if (user.StatusId != 1) // not Active
-                return (false, "This account is not active. Contact your administrator.", null);
-
-            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
-
-            if (result.IsLockedOut)
-                return (false, "Account is locked after too many failed attempts. Try again in 15 minutes.", null);
-
-            if (!result.Succeeded)
-                return (false, "Invalid email or password.", null);
-
-            // Generate JWT with RBAC permission claims
-            var token = await _tokenService.GenerateTokenAsync(user);
-            var roles = await _userManager.GetRolesAsync(user);
-
-            _logger.LogInformation("User {Email} logged in successfully", dto.Email);
-
-            var response = new LoginResponseDto
+            try
             {
-                Token = token,
-                ExpiresAt = DateTime.UtcNow.AddHours(1), // matches JwtSettings.ExpirationInMinutes
-                UserId = user.Id,
-                Name = user.Name,
-                Email = user.Email!,
-                EmployeeId = user.EmployeeId,
-                Roles = roles
-            };
+                // Validate input
+                if (string.IsNullOrWhiteSpace(dto.Email) && string.IsNullOrWhiteSpace(dto.EmployeeId))
+                    return (false, "Email or Employee ID is required.", null);
 
-            return (true, "Login successful.", response);
+                if (string.IsNullOrWhiteSpace(dto.Password))
+                    return (false, "Password is required.", null);
+
+                ApplicationUser? user = null;
+
+                // Find user
+                if (!string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    user = await _userManager.FindByEmailAsync(dto.Email);
+                }
+                else if (!string.IsNullOrWhiteSpace(dto.EmployeeId))
+                {
+                    user = await _userManager.Users
+                        .FirstOrDefaultAsync(u => u.EmployeeId == dto.EmployeeId);
+                }
+
+                if (user == null)
+                    return (false, "Invalid credentials.", null);
+
+                // Account checks
+                if (user.IsDeleted)
+                    return (false, "This account has been deactivated. Contact your administrator.", null);
+
+                if (user.StatusId != 1)
+                    return (false, "This account is not active. Contact your administrator.", null);
+
+                // Password check
+                var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
+
+                if (result.IsLockedOut)
+                    return (false, "Account is locked after too many failed attempts. Try again later.", null);
+
+                if (!result.Succeeded)
+                    return (false, "Invalid credentials.", null);
+
+                // Generate token
+                var token = await _tokenService.GenerateTokenAsync(user);
+                var roles = await _userManager.GetRolesAsync(user);
+
+                _logger.LogInformation("User {UserIdentifier} logged in successfully",
+                    dto.Email ?? dto.EmployeeId);
+
+                var response = new LoginResponseDto
+                {
+                    Token = token,
+                    ExpiresAt = DateTime.UtcNow.AddHours(1),
+                    UserId = user.Id,
+                    Name = user.Name,
+                    Email = user.Email!,
+                    EmployeeId = user.EmployeeId,
+                    Roles = roles
+                };
+
+                return (true, "Login successful.", response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred during login for {UserIdentifier}",
+                    dto.Email ?? dto.EmployeeId);
+
+                return (false, "An unexpected error occurred. Please try again later.", null);
+            }
         }
+
+        //public async Task<(bool Success, string Message, LoginResponseDto? Response)> LoginAsync(
+        //    LoginRequestDto dto)
+        //{
+        //    // Use IgnoreQueryFilters to allow logging in even if user is soft-deleted
+        //    // (so we can return a meaningful error rather than "not found")
+        //    var user = await _userManager.FindByEmailAsync(dto.Email);
+
+        //    if (user == null)
+        //        return (false, "Invalid email or password.", null);
+
+        //    if (user.IsDeleted)
+        //        return (false, "This account has been deactivated. Contact your administrator.", null);
+
+        //    if (user.StatusId != 1) // not Active
+        //        return (false, "This account is not active. Contact your administrator.", null);
+
+        //    var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
+
+        //    if (result.IsLockedOut)
+        //        return (false, "Account is locked after too many failed attempts. Try again in 15 minutes.", null);
+
+        //    if (!result.Succeeded)
+        //        return (false, "Invalid email or password.", null);
+
+        //    // Generate JWT with RBAC permission claims
+        //    var token = await _tokenService.GenerateTokenAsync(user);
+        //    var roles = await _userManager.GetRolesAsync(user);
+
+        //    _logger.LogInformation("User {Email} logged in successfully", dto.Email);
+
+        //    var response = new LoginResponseDto
+        //    {
+        //        Token = token,
+        //        ExpiresAt = DateTime.UtcNow.AddHours(1), // matches JwtSettings.ExpirationInMinutes
+        //        UserId = user.Id,
+        //        Name = user.Name,
+        //        Email = user.Email!,
+        //        EmployeeId = user.EmployeeId,
+        //        Roles = roles
+        //    };
+
+        //    return (true, "Login successful.", response);
+        //}
+
+
 
         // ── Profile ───────────────────────────────────────────────
 

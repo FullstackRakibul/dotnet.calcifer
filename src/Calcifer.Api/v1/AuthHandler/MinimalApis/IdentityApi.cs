@@ -60,13 +60,29 @@ namespace Calcifer.Api.AuthHandler.MinimalApis
             // POST /auth/login — open, no auth required
             auth.MapPost("/login", async (LoginRequestDto dto, AuthService authService) =>
             {
-                //return Results.Ok("this is a testttttttttttt.............s");
                 var (success, message, response) = await authService.LoginAsync(dto);
 
                 return success
-                    ? Results.Ok(new ApiResponseDto<LoginResponseDto> { Status = true, Message = message, Data = response })
-                    : Results.Unauthorized();
+                    ? Results.Ok(new ApiResponseDto<LoginResponseDto>
+                    {
+                        Status = true,
+                        Message = message,
+                        Data = response
+                    })
+                    : Results.BadRequest(new ApiResponseDto<object>
+                    {
+                        Status = false,
+                        Message = message
+                    });
             });
+            //auth.MapPost("/login", async (LoginRequestDto dto, AuthService authService) =>
+            //{
+            //    var (success, message, response) = await authService.LoginAsync(dto);
+
+            //    return success
+            //        ? Results.Ok(new ApiResponseDto<LoginResponseDto> { Status = true, Message = message, Data = response })
+            //        : Results.Unauthorized();
+            //});
 
             // GET /auth/me — requires own token
             auth.MapGet("/me", async (HttpContext ctx, AuthService authService) =>
