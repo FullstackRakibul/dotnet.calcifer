@@ -72,10 +72,11 @@ builder.Services.AddCors(options =>
         {
             builder.WithOrigins(
                     "http://localhost:4200",
-                    "https://weavo-go.vercel.app"
-                )
+                    "https://weavo-go.vercel.app",
+					"http://10.10.60.156:4200",
+                    "*"
+				)
                 .AllowAnyHeader()
-                .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowCredentials();
         });
