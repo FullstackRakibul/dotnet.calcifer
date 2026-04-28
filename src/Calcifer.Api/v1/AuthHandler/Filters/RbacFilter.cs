@@ -1,5 +1,4 @@
-
-using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

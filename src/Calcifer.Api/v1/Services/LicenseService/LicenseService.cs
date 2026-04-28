@@ -14,8 +14,8 @@
 
 using System.Security.Cryptography;
 using Calcifer.Api.DbContexts;
+using Calcifer.Api.DbContexts.DTOs.LicenseDTO;
 using Calcifer.Api.DbContexts.Licensing;
-using Calcifer.Api.DTOs.LicenseDTO;
 using Calcifer.Api.Interface.Licensing;
 using Microsoft.EntityFrameworkCore;
 

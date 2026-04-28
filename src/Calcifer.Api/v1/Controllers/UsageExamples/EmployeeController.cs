@@ -1,5 +1,5 @@
 using Calcifer.Api.AuthHandler.Filters;
-using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 

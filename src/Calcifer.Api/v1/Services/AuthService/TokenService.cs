@@ -22,7 +22,7 @@ using System.Security.Claims;
 using System.Text;
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

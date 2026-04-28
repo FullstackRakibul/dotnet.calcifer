@@ -1,8 +1,8 @@
 using Calcifer.Api.AuthHandler.Filters;
 using Calcifer.Api.AuthHandler.MinimalApis;
-using Calcifer.Api.DbContexts.MinimalApis.PublicApis;
-using Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples;
-using Calcifer.Api.DbContexts.Rbac.MinimalApis;
+using Calcifer.Api.MinimalApis.PublicApis;
+using Calcifer.Api.MinimalApis.PublicApis.UsageExamples;
+using Calcifer.Api.Rbac.MinimalApis;
 
 namespace Calcifer.Api.Middleware
 {

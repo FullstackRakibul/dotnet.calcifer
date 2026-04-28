@@ -24,8 +24,8 @@
 //      POST   /license/{id}/features          — set feature on/off
 // ============================================================
 
-using Calcifer.Api.DTOs;
-using Calcifer.Api.DTOs.LicenseDTO;
+using Calcifer.Api.DbContexts.DTOs.LicenseDTO;
+using Calcifer.Api.Helper.ApiResponse;
 using Calcifer.Api.Interface.Licensing;
 
 namespace Calcifer.Api.AuthHandler.MinimalApis

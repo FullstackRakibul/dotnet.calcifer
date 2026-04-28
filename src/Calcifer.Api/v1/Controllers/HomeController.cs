@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections;
-using Calcifer.Api.DbContexts.Models;
-using Calcifer.Api.DTOs;
+using Calcifer.Api.Helper.ApiResponse;
 using Calcifer.Api.Interface.Common;
-using Calcifer.Api.Services;
 
 namespace Calcifer.Api.Controllers
 {

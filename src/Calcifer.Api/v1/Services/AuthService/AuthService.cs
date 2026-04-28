@@ -6,8 +6,8 @@
 // ============================================================
 
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Rbac.Enums;
-using Calcifer.Api.DTOs.AuthDTO;
+using Calcifer.Api.DbContexts.DTOs.AuthDTO;
+using Calcifer.Api.Rbac.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

@@ -13,8 +13,8 @@
 //    - CRUD for admin management of license records
 // ============================================================
 
+using Calcifer.Api.DbContexts.DTOs.LicenseDTO;
 using Calcifer.Api.DbContexts.Licensing;
-using Calcifer.Api.DTOs.LicenseDTO;
 
 namespace Calcifer.Api.Interface.Licensing
 {

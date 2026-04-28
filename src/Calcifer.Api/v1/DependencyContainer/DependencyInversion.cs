@@ -3,18 +3,18 @@ using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.Interface.Common;
 using Calcifer.Api.Interface.Licensing;
-using Calcifer.Api.Interface.Rbac;
 using Calcifer.Api.Services;
 using Calcifer.Api.Services.AuthService;
 using Calcifer.Api.Services.LicenseService;
-using Calcifer.Api.Services.Rbac;
-using Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Calcifer.Api.MinimalApis.PublicApis.UsageExamples;
+using Calcifer.Api.Rbac.Interfaces;
+using Calcifer.Api.Rbac.Services;
 
 namespace Calcifer.Api.DependencyInversion
 {

@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DbContexts\Rbac\NewFolder\**" />
-    <Content Remove="DbContexts\Rbac\NewFolder\**" />
-    <EmbeddedResource Remove="DbContexts\Rbac\NewFolder\**" />
-    <None Remove="DbContexts\Rbac\NewFolder\**" />
+    <Compile Remove="Rbac\NewFolder\**" />
+    <Content Remove="Rbac\NewFolder\**" />
+    <EmbeddedResource Remove="Rbac\NewFolder\**" />
+    <None Remove="Rbac\NewFolder\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +29,7 @@
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="Migrations\" />
+    <Folder Include="MinimalApis\AdministrationApis\" />
     <Folder Include="Services\Common\" />
   </ItemGroup>
 

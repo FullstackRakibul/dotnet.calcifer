@@ -1,0 +1,464 @@
+{
+  "projectMetadata": {
+    "name": "Calcifer.Api",
+    "description": "Enterprise-grade ASP.NET Core 8.0 API with advanced RBAC, licensing, and feature-gating",
+    "framework": ".NET 8.0",
+    "language": "C#",
+    "maintainedBy": "Rakibul H. Rabbi",
+    "version": "1.0.0",
+    "createdDate": "2026-04-27"
+  },
+
+  "architecture": {
+    "type": "Layered Monolith with Enterprise Patterns",
+    "pattern": "5-Layer Vertical Slice Architecture",
+    "layers": [
+      {
+        "name": "API Layer",
+        "description": "HTTP entry points using Pure Minimal APIs (primary) with Controllers only for legacy/complex UI logic",
+        "path": "AuthHandler/MinimalApis, MinimalApis/PublicApis, Controllers/",
+        "responsibility": "Route mapping, DTO marshaling, HTTP status codes, filter application",
+        "keyFiles": ["IdentityApi.cs", "LicenseApi.cs", "RbacMinimalApi.cs", "PublicCRUDApis.cs"]
+      },
+      {
+        "name": "DTO Layer",
+        "description": "Request/Response contracts ensuring zero domain model leakage",
+        "path": "DbContexts/DTOs/",
+        "responsibility": "Data shape contracts, validation attributes, serialization/deserialization",
+        "keyFiles": ["ApiResponseDto.cs", "AuthDTO/LoginRequestDto.cs", "LicenseDTO/LicenseDto.cs"]
+      },
+      {
+        "name": "Service Layer",
+        "description": "Business logic, RBAC resolution, licensing checks, authentication workflows",
+        "path": "Services/",
+        "responsibility": "Orchestration, business rules, transaction management, domain operations",
+        "keyFiles": ["AuthService.cs", "TokenService.cs", "RoleService.cs", "LicenseService.cs"]
+      },
+      {
+        "name": "Interface Layer",
+        "description": "Service contracts defining boundaries and enabling loose coupling",
+        "path": "Interface/",
+        "responsibility": "Abstract service contracts, support dependency injection",
+        "keyFiles": ["IPublicInterface.cs", "ILicenseService.cs", "IRbacService.cs"]
+      },
+      {
+        "name": "Data Access Layer",
+        "description": "EF Core DbContext, entities, migrations, query builders",
+        "path": "DbContexts/",
+        "responsibility": "Database communication, change tracking, materialization, soft-delete enforcement",
+        "keyFiles": ["CalciferAppDbContext.cs", "AuthModels/ApplicationUser.cs", "Licensing/License.cs", "Rbac/Entities/"]
+      }
+    ],
+    "crossCuttingConcerns": {
+      "authentication": {
+        "type": "JWT Bearer (HMAC-SHA256)",
+        "location": "AuthHandler/Configuration/JwtSettings.cs",
+        "claimsStructure": {
+          "sub": "User ID (string/GUID)",
+          "email": "User email address",
+          "name": "Display name",
+          "emp_id": "Employee ID",
+          "roles": "ASP.NET roles (multi-valued)",
+          "perms": "RBAC permissions in format 'Module:Resource:Action' (multi-valued, embedded from JWT)",
+          "unit_roles": "User+Role+Unit context (multi-valued)"
+        },
+        "tokenExpiry": "60 minutes (configurable via appsettings.json)"
+      },
+      "authorization": {
+        "filterChain": "License → RBAC → Request Handler",
+        "sequence": [
+          {
+            "order": 1,
+            "filter": "LicenseValidationFilter",
+            "type": "IAsyncAuthorizationFilter",
+            "purpose": "Feature-gating at module level - runs FIRST to reject early if license doesn't permit",
+            "attribute": "[RequireFeature('FeatureCode')]",
+            "location": "AuthHandler/Filters/LicenseValidationFilter.cs"
+          },
+          {
+            "order": 2,
+            "filter": "RbacAuthorizationFilter",
+            "type": "IAsyncAuthorizationFilter",
+            "purpose": "Role-based permission enforcement using Module:Resource:Action model",
+            "attribute": "[RequirePermission('Module', 'Resource', 'Action')]",
+            "location": "AuthHandler/Filters/RbacFilter.cs"
+          },
+          {
+            "order": 3,
+            "filter": "AuthorizationFilter",
+            "type": "IEndpointFilter (Minimal APIs)",
+            "purpose": "Global JWT authentication check - applied to /api/v1 group",
+            "location": "AuthHandler/Filters/AuthorizationFilter.cs"
+          }
+        ]
+      },
+      "securityInfrastructure": {
+        "customClaims": {
+          "location": "AuthHandler/Claims/CustomClaims.cs",
+          "purpose": "Centralized constants to avoid magic strings throughout codebase",
+          "constants": ["name", "region", "role", "perms", "unit_roles", "emp_id"]
+        },
+        "jwtTokenGeneration": {
+          "service": "TokenService",
+          "location": "Services/AuthService/TokenService.cs",
+          "process": "Creates JWT with all resolved RBAC permissions embedded (reduces subsequent DB hits)",
+          "callsRbacService": "BuildJwtPermissionClaimsAsync() to embed permission claims"
+        },
+        "rbacPermissionResolution": {
+          "service": "RbacService",
+          "location": "DbContexts/Rbac/Services/RbacService.cs",
+          "model": "Module:Resource:Action (atomic capabilities)",
+          "resolution": "Merge role-based + direct grants/denies with wildcard support (*:*:*)"
+        }
+      }
+    },
+
+    "modules": [
+      {
+        "name": "Authentication & Identity",
+        "description": "User registration, login, profile management, password changes",
+        "path": "AuthHandler/MinimalApis/IdentityApi.cs, Services/AuthService/",
+        "endpoints": [
+          "POST /api/v1/auth/register (public)",
+          "POST /api/v1/auth/login (public)",
+          "GET /api/v1/auth/me (requires auth)",
+          "POST /api/v1/auth/change-password (requires auth)"
+        ],
+        "services": ["AuthService", "TokenService"],
+        "dbEntities": ["ApplicationUser", "ApplicationRole"]
+      },
+      {
+        "name": "Role-Based Access Control (RBAC)",
+        "description": "Enterprise permission management with org unit context and caching",
+        "path": "DbContexts/Rbac/, AuthHandler/Filters/RbacFilter.cs",
+        "endpoints": [
+          "GET /api/v1/rbac/roles (list)",
+          "POST /api/v1/rbac/roles/assign (user@role@unit)",
+          "POST /api/v1/rbac/permissions/direct (override)",
+          "12 total RBAC management endpoints"
+        ],
+        "services": ["RbacService"],
+        "keyFeatures": [
+          "Module:Resource:Action permission model",
+          "Organization unit tree (Company→Factory→Dept→Team)",
+          "User role assignment with temporal scoping (ValidFrom, ValidTo)",
+          "Direct permission grants/denies (override role-based)",
+          "Permission caching with 5-minute TTL",
+          "JWT claim embedding to reduce DB load"
+        ],
+        "dbEntities": ["OrganizationUnit", "Permission", "RolePermission", "UserUnitRole", "UserDirectPermission", "PermissionCache"]
+      },
+      {
+        "name": "Licensing & Feature-Gating",
+        "description": "License validation, feature enablement, machine activation tracking",
+        "path": "Services/LicenseService/, AuthHandler/Filters/LicenseValidationFilter.cs",
+        "endpoints": [
+          "GET /api/v1/licenses (list)",
+          "POST /api/v1/licenses/activate (machine registration)",
+          "POST /api/v1/licenses/validate (check license)"
+        ],
+        "services": ["LicenseService"],
+        "keyFeatures": [
+          "Feature codes: HCM, Production, Finance, Inventory",
+          "License expiry tracking",
+          "Machine activation tracking (unique per license+machine)",
+          "Isolation from RBAC (independent feature gates)"
+        ],
+        "dbEntities": ["License", "LicenseType", "LicenseFeature", "LicenseActivation"]
+      },
+      {
+        "name": "Public API",
+        "description": "Public-facing endpoints for non-authenticated operations",
+        "path": "MinimalApis/PublicApis/",
+        "endpoints": [
+          "GET /api/v1/public (public data)",
+          "GET /public/status (common status list)"
+        ],
+        "services": ["PublicService"],
+        "dbEntities": ["PublicData", "CommonStatus"]
+      }
+    ],
+
+    "microserviceReadiness": {
+      "status": "60% Ready",
+      "readyForSeparation": [
+        {
+          "module": "RBAC",
+          "reason": "Clear interface (IRbacService), isolated entities, standalone logic",
+          "blockers": "Shared database with other modules"
+        },
+        {
+          "module": "Licensing",
+          "reason": "Independent feature gates, no RBAC dependency, clean interface",
+          "blockers": "Shared database, no async events"
+        },
+        {
+          "module": "Authentication",
+          "reason": "Standard JWT/OAuth pattern, isolated services",
+          "blockers": "Shared user database, tightly coupled to Identity"
+        }
+      ],
+      "missingForFullMicroservices": [
+        "Async event bus (RabbitMQ, Azure Service Bus) - currently synchronous",
+        "Service discovery - no Consul/Kubernetes-native discovery",
+        "API Gateway - direct access to monolith",
+        "Database per service - currently shared CalciferAppDbContext"
+      ]
+    }
+  },
+
+  "securityRules": {
+    "strictMode": true,
+    "enforcedConstraints": [
+      {
+        "constraint": "No hardcoded secrets in source code",
+        "severity": "CRITICAL",
+        "verification": "All secrets (JWT key, DB strings) must use dotnet user-secrets or Azure Key Vault",
+        "files_involved": ["appsettings.Development.json", "appsettings.Example.json"]
+      },
+      {
+        "constraint": "CORS must not combine wildcard origin with AllowCredentials",
+        "severity": "CRITICAL",
+        "verification": "Remove wildcard (*) from origins list if AllowCredentials=true",
+        "files_involved": ["DependencyContainer/DependencyInversion.cs"]
+      },
+      {
+        "constraint": "Rate limiting required on auth endpoints",
+        "severity": "HIGH",
+        "verification": "POST /auth/register and POST /auth/login must have IP-based rate limiting",
+        "middleware": "Add AspNetCoreRateLimit or custom middleware",
+        "implementation": "Configure in DependencyInversion.cs and MiddlewareDependencyInversion.cs"
+      },
+      {
+        "constraint": "All DTOs must have input validation",
+        "severity": "HIGH",
+        "verification": "LoginRequestDto, RegisterRequestDto must have FluentValidation or DataAnnotations",
+        "example": "[Required, EmailAddress] public string Email { get; set; }"
+      },
+      {
+        "constraint": "Soft-delete enforcement via query filters",
+        "severity": "MEDIUM",
+        "verification": "ApplicationUser and soft-delete entities must have .HasQueryFilter() applied",
+        "files_involved": ["DbContexts/CalciferAppDbContext.cs"]
+      },
+      {
+        "constraint": "JWT secret must be minimum 32 characters",
+        "severity": "HIGH",
+        "verification": "JwtSettings.Secret.Length >= 32",
+        "files_involved": ["AuthHandler/Configuration/JwtSettings.cs"]
+      },
+      {
+        "constraint": "No duplicate service interfaces",
+        "severity": "MEDIUM",
+        "verification": "ILicenseService defined once, in Interface/ folder",
+        "files_involved": ["Interface/Licensing/ILicenseService.cs"]
+      }
+    ]
+  },
+
+  "developmentCommands": {
+    "setup": [
+      {
+        "description": "Clone and restore dependencies",
+        "command": "dotnet restore"
+      },
+      {
+        "description": "Set JWT secret for local development",
+        "command": "dotnet user-secrets set \"JwtSettings:Secret\" \"your-super-secret-key-minimum-32-characters-required\""
+      },
+      {
+        "description": "Set database connection string (LocalDB)",
+        "command": "dotnet user-secrets set \"ConnectionStrings:CalciferDBContext\" \"Server=(localdb)\\\\mssqllocaldb;Database=EktaDatabase;Trusted_Connection=True;TrustServerCertificate=True\""
+      }
+    ],
+    "database": [
+      {
+        "description": "Apply migrations and seed data",
+        "command": "dotnet ef database update"
+      },
+      {
+        "description": "Create new migration",
+        "command": "dotnet ef migrations add <MigrationName>"
+      },
+      {
+        "description": "Remove last migration (undo)",
+        "command": "dotnet ef migrations remove"
+      }
+    ],
+    "build": [
+      {
+        "description": "Build project",
+        "command": "dotnet build"
+      },
+      {
+        "description": "Build in release mode",
+        "command": "dotnet build -c Release"
+      }
+    ],
+    "run": [
+      {
+        "description": "Run with hot-reload (development)",
+        "command": "dotnet watch"
+      },
+      {
+        "description": "Run without watch",
+        "command": "dotnet run"
+      },
+      {
+        "description": "Run in production configuration",
+        "command": "dotnet run --environment Production"
+      }
+    ],
+    "testing": [
+      {
+        "description": "Test POST /auth/login",
+        "command": "curl -X POST http://localhost:5000/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"admin@calcifer.local\",\"password\":\"Admin@12345\"}'"
+      },
+      {
+        "description": "Test GET /api/v1/public (no auth required)",
+        "command": "curl -X GET http://localhost:5000/api/v1/public"
+      }
+    ]
+  },
+
+  "codeStyleGuidelines": {
+    "enforced": true,
+    "rules": [
+      "Use nullable reference types (#nullable enable)",
+      "Async/await for all I/O operations (no .Result blocking)",
+      "Dependency injection via constructor only (no service locator)",
+      "DTOs for all request/response shapes (no domain model leakage)",
+      "Layer separation: API → DTO → Service → Interface → Data",
+      "Minimal APIs preferred over Controllers for new endpoints",
+      "Magic strings prohibited - use constants in CustomClaims.cs",
+      "Query filters for soft-deleted entities",
+      "Explicit .Include() for eager loading (no N+1 queries)"
+    ]
+  },
+
+  "architektur_concerns": {
+    "critical": [
+      {
+        "issue": "JWT Secret hardcoded in source",
+        "severity": "CRITICAL",
+        "location": "appsettings.Development.json",
+        "risk": "Token forgery, session hijacking",
+        "mitigation": "Use dotnet user-secrets locally, Azure Key Vault in production"
+      },
+      {
+        "issue": "CORS misconfiguration",
+        "severity": "CRITICAL",
+        "location": "DependencyInversion.cs",
+        "risk": "Credentials sent to any origin due to wildcard",
+        "mitigation": "Remove wildcard (*) or remove AllowCredentials"
+      },
+      {
+        "issue": "No rate limiting on auth endpoints",
+        "severity": "HIGH",
+        "location": "AuthHandler/MinimalApis/IdentityApi.cs",
+        "risk": "Brute force attacks, account enumeration",
+        "mitigation": "Implement AspNetCoreRateLimit with IP-based rules"
+      },
+      {
+        "issue": "Login controller stub",
+        "severity": "HIGH",
+        "location": "Controllers/AuthController/AuthController.cs",
+        "risk": "Duplicate endpoint, non-functional, security bypass",
+        "mitigation": "Remove controller entirely, consolidate to IdentityApi.cs (Pure Minimal API)"
+      }
+    ],
+    "medium": [
+      {
+        "issue": "No structured logging",
+        "severity": "MEDIUM",
+        "location": "Services/",
+        "mitigation": "Implement Serilog with structured JSON output"
+      },
+      {
+        "issue": "RBAC cache manual invalidation",
+        "severity": "MEDIUM",
+        "location": "DbContexts/Rbac/Services/RbacService.cs",
+        "mitigation": "Event-driven cache invalidation via observer pattern"
+      },
+      {
+        "issue": "Duplicate ILicenseService",
+        "severity": "MEDIUM",
+        "location": "Interface/Licensing vs DbContexts/Licensing",
+        "mitigation": "Single source of truth in Interface/ folder"
+      }
+    ]
+  },
+
+  "pureMinimalApiArchitecture": {
+    "principle": "Pure Minimal APIs for identity/auth infrastructure, Controllers only for complex/legacy logic",
+    "implementation": {
+      "consolidation": {
+        "target": "Move AuthController.cs logic → IdentityApi.cs",
+        "reasoning": "Single entry point for auth flows, reduced complexity, standard pattern",
+        "deprecation": "Remove /api/v1/Controllers/auth/* routes in favor of /api/v1/auth/*"
+      },
+      "roleManagement": {
+        "target": "Roles handled via MinimalApi group in IdentityApi.cs",
+        "current": "GET /api/v1/Controllers/role/* (controller-based)",
+        "new": "GET /api/v1/roles/* (minimal API group with SuperAdminPolicy)"
+      },
+      "filterOrderAndApplicatio": {
+        "global": "AuthorizationFilter applied to /api/v1 group → ensures all protected routes check JWT",
+        "attributeBased": "[RequireFeature] → [RequirePermission] → applied via Minimal API metadata",
+        "controllerCompat": "RbacFilter and LicenseValidationFilter still support [attribute] on controller actions for legacy"
+      },
+      "dependencyInversionHub": {
+        "responsibility": "Central registration point for all auth services, filters, policies",
+        "location": "DependencyContainer/DependencyInversion.cs",
+        "features": [
+          "Identity + ASP.NET Identity setup",
+          "JWT Bearer scheme configuration",
+          "RBAC service registration",
+          "License service registration",
+          "Authorization policies (SuperAdminPolicy, AdminPolicy, ModeratorPolicy)",
+          "CORS configuration",
+          "Rate limiting middleware (to be added)"
+        ]
+      }
+    },
+    "benefits": [
+      "Lower overhead - no MVC controller infrastructure",
+      "Consistent API surface - all endpoints follow same pattern",
+      "Easier to scale - microservice extraction simpler",
+      "Modern .NET patterns - aligned with latest ASP.NET Core recommendations",
+      "Better testability - minimal HTTP layer makes unit testing easier"
+    ]
+  },
+
+  "databaseStrategy": {
+    "orm": "Entity Framework Core 8.0.1",
+    "provider": "Microsoft.EntityFrameworkCore.SqlServer",
+    "context": "CalciferAppDbContext (inherits IdentityDbContext)",
+    "keyPattern": "Soft-delete with query filters",
+    "migrations": "Code-first approach with EF Core migrations",
+    "seeding": "DatabaseInitializer.cs (idempotent on startup)"
+  },
+
+  "dependencyMap": {
+    "authService": ["TokenService", "RoleService", "IRbacService", "UserManager<ApplicationUser>"],
+    "tokenService": ["JwtSettings", "IRbacService"],
+    "rbacService": ["CalciferAppDbContext", "PermissionCache"],
+    "licenseService": ["CalciferAppDbContext"],
+    "allServices": ["ILogger<T>", "IConfiguration", "CalciferAppDbContext"]
+  },
+
+  "fileStructure": {
+    "authoritative": true,
+    "description": "Primary organizing principle is layer separation with domain-specific subfolders",
+    "keyPaths": {
+      "api": "AuthHandler/MinimalApis/, MinimalApis/PublicApis/, Controllers/",
+      "dto": "DbContexts/DTOs/",
+      "services": "Services/AuthService/, Services/LicenseService/, DbContexts/Rbac/Services/",
+      "interfaces": "Interface/, DbContexts/Rbac/Interfaces/",
+      "models": "DbContexts/",
+      "filters": "AuthHandler/Filters/",
+      "config": "AuthHandler/Configuration/, DependencyContainer/, Middleware/",
+      "infrastructure": "Infrastructure/ (seeding, initialization)"
+    }
+  }
+}
