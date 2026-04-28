@@ -15,6 +15,7 @@ using System.Text;
 using Calcifer.Api.MinimalApis.PublicApis.UsageExamples;
 using Calcifer.Api.Rbac.Interfaces;
 using Calcifer.Api.Rbac.Services;
+using Calcifer.Api.Helper.LogWriter;
 
 namespace Calcifer.Api.DependencyInversion
 {
@@ -36,6 +37,9 @@ namespace Calcifer.Api.DependencyInversion
 			// ── Licensing engine ──────────────────────────────────────────
 			services.AddScoped<ILicenseService, LicenseService>();
 
+			// ── Dynamic Log Writer (singleton — shared across all requests) ──
+			services.AddDynamicLogWriter();
+
 			// ── Usage example stubs (replace with real implementations) ──
 			services.AddScoped<IPayrollService, StubPayrollService>();
 
@@ -52,6 +56,18 @@ namespace Calcifer.Api.DependencyInversion
 			.AddDefaultTokenProviders();
 
 			// ── JWT Authentication ─────────────────────────────────────────
+			// Secret MUST come from user-secrets (dev) or Key Vault (prod).
+			// Minimum 32 characters required for HMAC-SHA256.
+			var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>()
+				?? throw new InvalidOperationException(
+					"JwtSettings section is missing from configuration. " +
+					"Run: dotnet user-secrets set \"JwtSettings:Secret\" \"<your-32-char-secret>\"");
+
+			if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
+				throw new InvalidOperationException(
+					$"JWT Secret must be at least 32 characters (current: {jwtSettings.Secret?.Length ?? 0}). " +
+					"Run: dotnet user-secrets set \"JwtSettings:Secret\" \"<your-32-char-secret>\"");
+
 			services.AddAuthentication(options =>
 			{
 				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -60,20 +76,17 @@ namespace Calcifer.Api.DependencyInversion
 			})
 			.AddJwtBearer(options =>
 			{
-				var sp = services.BuildServiceProvider();
-				var jwtSettings = sp.GetRequiredService<IConfiguration>()
-									.GetSection("JwtSettings").Get<JwtSettings>()!;
-
 				options.TokenValidationParameters = new TokenValidationParameters
 				{
 					ValidateIssuer = true,
 					ValidateAudience = true,
 					ValidateLifetime = true,
 					ValidateIssuerSigningKey = true,
+					ClockSkew = TimeSpan.FromMinutes(1),
 					ValidIssuer = jwtSettings.Issuer,
 					ValidAudience = jwtSettings.Audience,
 					IssuerSigningKey = new SymmetricSecurityKey(
-													Encoding.UTF8.GetBytes(jwtSettings.Secret))
+												Encoding.UTF8.GetBytes(jwtSettings.Secret))
 				};
 			});
 
