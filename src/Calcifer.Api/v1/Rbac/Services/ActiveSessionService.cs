@@ -3,6 +3,7 @@ using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.Helper.LogWriter;
 using Calcifer.Api.Rbac.DTOs;
 using Calcifer.Api.Rbac.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Calcifer.Api.Rbac.Services
 {
@@ -41,16 +42,16 @@ namespace Calcifer.Api.Rbac.Services
           .Where(u => u.RefreshTokens.Any(rt => rt.ExpiryTime > now))
           .SelectMany(u => u.RefreshTokens.Where(rt => rt.ExpiryTime > now),
             (user, token) => new ActiveSessionDto(
-              Id: token.Id,
-              UserId: user.Id,
-              UserName: user.UserName ?? "",
-              UserEmail: user.Email ?? "",
-              IpAddress: token.IpAddress ?? "",
-              Location: null,  // Could be populated from GeoIP service
-              Device: token.DeviceName,
-              LoginTime: token.CreatedAt,
-              LastActivityTime: token.UpdatedAt,
-              IsActive: token.ExpiryTime > now
+              token.Id,                   // Id
+              user.Id,                    // UserId
+              user.UserName ?? "",        // UserName
+              user.Email ?? "",           // UserEmail
+              token.IpAddress ?? "",      // IpAddress
+              null,                       // Location
+              token.DeviceName,           // Device
+              token.CreatedAt,            // LoginTime
+              token.UpdatedAt,            // LastActivityTime
+              token.ExpiryTime > now      // IsActive
             ))
           .ToListAsync();
 
@@ -71,18 +72,17 @@ namespace Calcifer.Api.Rbac.Services
 
         var session = await _dbContext.UserRefreshTokens
           .Where(rt => rt.Id == sessionId && rt.ExpiryTime > now)
-          .Include(rt => rt.User)
           .Select(rt => new ActiveSessionDto(
-            Id: rt.Id,
-            UserId: rt.UserId,
-            UserName: rt.User.UserName ?? "",
-            UserEmail: rt.User.Email ?? "",
-            IpAddress: rt.IpAddress ?? "",
-            Location: null,
-            Device: rt.DeviceName,
-            LoginTime: rt.CreatedAt,
-            LastActivityTime: rt.UpdatedAt,
-            IsActive: rt.ExpiryTime > now
+            rt.Id,                      // Id
+            rt.UserId,                  // UserId
+            rt.User.UserName ?? "",     // UserName
+            rt.User.Email ?? "",        // UserEmail
+            rt.IpAddress ?? "",         // IpAddress
+            null,                       // Location
+            rt.DeviceName,              // Device
+            rt.CreatedAt,               // LoginTime
+            rt.UpdatedAt,               // LastActivityTime
+            rt.ExpiryTime > now         // IsActive
           ))
           .FirstOrDefaultAsync();
 

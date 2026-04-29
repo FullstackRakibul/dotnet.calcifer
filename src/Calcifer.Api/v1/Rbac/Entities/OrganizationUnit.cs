@@ -45,6 +45,7 @@ namespace Calcifer.Api.Rbac.Entities
 		public OrganizationUnit? Parent { get; set; }
 
 		public ICollection<OrganizationUnit> Children { get; set; } = new List<OrganizationUnit>();
+		public int MembersCount { get; set; }
 
 		// ── RBAC navigation ──────────────────────────────────────
 		public ICollection<UserUnitRole> UserRoles { get; set; } = new List<UserUnitRole>();

@@ -2,6 +2,7 @@ using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.Helper.LogWriter;
 using Calcifer.Api.Rbac.DTOs;
+using Calcifer.Api.Rbac.Entities;
 using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,10 @@ namespace Calcifer.Api.Rbac.Services
       _logger = logger;
     }
 
+    // ═════════════════════════════════════════════════════════════════════
+    // ROLES CRUD
+    // ═════════════════════════════════════════════════════════════════════
+
     public async Task<List<RoleDto>> GetAllRolesAsync(CancellationToken ct = default)
     {
       try
@@ -40,13 +45,13 @@ namespace Calcifer.Api.Rbac.Services
 
         var roles = await _dbContext.Roles
           .Select(r => new RoleDto(
-            Id: r.Id,
-            Name: r.Name ?? "",
-            Description: r.Description ?? "",
-            IsSystem: false,
-            UsersCount: r.Users.Count,
-            PermissionCount: r.Permissions.Count,
-            LastUpdated: DateTime.UtcNow
+            r.Id,                       // Id
+            r.Name ?? "",               // Name
+            r.Description ?? "",        // Description
+            r.IsSystemRole,             // IsSystem
+            r.Users.Count,              // UsersCount
+            r.RolePermissions.Count,    // PermissionCount
+            DateTime.UtcNow             // LastUpdated
           ))
           .ToListAsync(ct);
 
@@ -64,7 +69,17 @@ namespace Calcifer.Api.Rbac.Services
       try
       {
         var role = await _dbContext.Roles
-          .FirstOrDefaultAsync(r => r.Id == id, ct);
+          .Where(r => r.Id == id)
+          .Select(r => new RoleDto(
+            r.Id,                       // Id
+            r.Name ?? "",               // Name
+            r.Description ?? "",        // Description
+            r.IsSystemRole,             // IsSystem
+            r.Users.Count,              // UsersCount
+            r.RolePermissions.Count,    // PermissionCount
+            DateTime.UtcNow             // LastUpdated
+          ))
+          .FirstOrDefaultAsync(ct);
 
         if (role == null)
         {
@@ -82,17 +97,7 @@ namespace Calcifer.Api.Rbac.Services
           $"Retrieved role: {role.Name}",
           _logger.GetCorrelationId());
 
-        var dto = new RoleDto(
-          Id: role.Id,
-          Name: role.Name ?? "",
-          Description: role.Description ?? "",
-          IsSystem: false,
-          UsersCount: role.Users.Count,
-          PermissionCount: role.Permissions.Count,
-          LastUpdated: DateTime.UtcNow
-        );
-
-        return dto;
+        return role;
       }
       catch (Exception ex)
       {
@@ -155,6 +160,8 @@ namespace Calcifer.Api.Rbac.Services
       try
       {
         var role = await _dbContext.Roles
+          .Include(r => r.Users)
+          .Include(r => r.RolePermissions)
           .FirstOrDefaultAsync(r => r.Id == id, ct);
 
         if (role == null)
@@ -191,9 +198,9 @@ namespace Calcifer.Api.Rbac.Services
           Id: role.Id,
           Name: role.Name ?? "",
           Description: role.Description ?? "",
-          IsSystem: false,
+          IsSystem: role.IsSystemRole,
           UsersCount: role.Users.Count,
-          PermissionCount: role.Permissions.Count,
+          PermissionCount: role.RolePermissions.Count,
           LastUpdated: DateTime.UtcNow
         );
       }
@@ -250,10 +257,140 @@ namespace Calcifer.Api.Rbac.Services
       }
     }
 
+    // ═════════════════════════════════════════════════════════════════════
+    // ROLE ↔ PERMISSIONS
+    // ═════════════════════════════════════════════════════════════════════
+
+    public async Task<List<RolePermissionDto>> GetRolePermissionsAsync(string roleId, CancellationToken ct = default)
+    {
+      try
+      {
+        await _logger.LogActionAsync(
+          "Get role permissions",
+          "RoleManagement",
+          $"RoleId: {roleId}",
+          _logger.GetCorrelationId());
+
+        var permissions = await _dbContext.RolePermissions
+          .Where(rp => rp.RoleId == roleId && !rp.IsDeleted)
+          .Select(rp => new RolePermissionDto(
+            rp.RoleId,                  // RoleId
+            rp.Role.Name ?? "",         // RoleName
+            rp.PermissionId,            // PermissionId
+            rp.Permission.Module,       // Module
+            rp.Permission.Resource,     // Resource
+            rp.Permission.Action        // Action
+          ))
+          .ToListAsync(ct);
+
+        return permissions;
+      }
+      catch (Exception ex)
+      {
+        await _logger.LogErrorAsync("Failed to get role permissions", ex, _logger.GetCorrelationId());
+        throw;
+      }
+    }
+
+    public async Task<RolePermissionDto> AssignPermissionToRoleAsync(string roleId, int permissionId, string assignedBy, CancellationToken ct = default)
+    {
+      try
+      {
+        await _logger.LogActionAsync(
+          "Assign permission to role",
+          "RoleManagement",
+          $"RoleId: {roleId}, PermissionId: {permissionId}, AssignedBy: {assignedBy}",
+          _logger.GetCorrelationId());
+
+        var exists = await _dbContext.RolePermissions
+          .AnyAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId && !rp.IsDeleted, ct);
+
+        if (exists)
+          throw new Exception("Role already has this permission.");
+
+        var rolePermission = new RolePermission
+        {
+          RoleId = roleId,
+          PermissionId = permissionId,
+          CreatedBy = assignedBy,
+          CreatedAt = DateTime.UtcNow,
+          StatusId = 1
+        };
+
+        _dbContext.RolePermissions.Add(rolePermission);
+        await _dbContext.SaveChangesAsync(ct);
+
+        var permission = await _dbContext.Permissions.FindAsync(permissionId);
+        var role = await _dbContext.Roles.FindAsync(roleId);
+
+        await _logger.LogActionAsync(
+          "Permission assigned to role",
+          "RoleManagement",
+          $"RoleId: {roleId}, PermissionId: {permissionId}",
+          _logger.GetCorrelationId());
+
+        return new RolePermissionDto(
+          RoleId: roleId,
+          RoleName: role?.Name ?? "",
+          PermissionId: permissionId,
+          Module: permission?.Module ?? "",
+          Resource: permission?.Resource ?? "",
+          Action: permission?.Action ?? ""
+        );
+      }
+      catch (Exception ex)
+      {
+        await _logger.LogErrorAsync("Failed to assign permission to role", ex, _logger.GetCorrelationId());
+        throw;
+      }
+    }
+
+    public async Task<bool> RemovePermissionFromRoleAsync(string roleId, int permissionId, string removedBy, CancellationToken ct = default)
+    {
+      try
+      {
+        await _logger.LogActionAsync(
+          "Remove permission from role",
+          "RoleManagement",
+          $"RoleId: {roleId}, PermissionId: {permissionId}, RemovedBy: {removedBy}",
+          _logger.GetCorrelationId());
+
+        var rp = await _dbContext.RolePermissions
+          .FirstOrDefaultAsync(r => r.RoleId == roleId && r.PermissionId == permissionId && !r.IsDeleted, ct);
+
+        if (rp == null) return false;
+
+        rp.IsDeleted = true;
+        rp.DeletedAt = DateTime.UtcNow;
+        rp.DeletedBy = removedBy;
+
+        await _dbContext.SaveChangesAsync(ct);
+
+        await _logger.LogActionAsync(
+          "Permission removed from role",
+          "RoleManagement",
+          $"RoleId: {roleId}, PermissionId: {permissionId}",
+          _logger.GetCorrelationId());
+
+        return true;
+      }
+      catch (Exception ex)
+      {
+        await _logger.LogErrorAsync("Failed to remove permission from role", ex, _logger.GetCorrelationId());
+        throw;
+      }
+    }
+
     public async Task SyncRolePermissionsAsync(string roleId, int[] permissionIds, string updatedBy, CancellationToken ct = default)
     {
       try
       {
+        await _logger.LogActionAsync(
+          "Sync role permissions",
+          "RoleManagement",
+          $"RoleId: {roleId}, PermissionCount: {permissionIds.Length}",
+          _logger.GetCorrelationId());
+
         // Remove all current permissions
         var existing = _dbContext.RolePermissions.Where(rp => rp.RoleId == roleId);
         _dbContext.RolePermissions.RemoveRange(existing);
@@ -262,14 +399,17 @@ namespace Calcifer.Api.Rbac.Services
         var newPermissions = permissionIds.Select(pId => new RolePermission
         {
           RoleId = roleId,
-          PermissionId = pId
+          PermissionId = pId,
+          CreatedBy = updatedBy,
+          CreatedAt = DateTime.UtcNow,
+          StatusId = 1
         }).ToList();
 
         _dbContext.RolePermissions.AddRange(newPermissions);
         await _dbContext.SaveChangesAsync(ct);
 
         await _logger.LogActionAsync(
-          "Sync role permissions",
+          "Role permissions synced",
           "RoleManagement",
           $"RoleId: {roleId}, PermissionCount: {permissionIds.Length}, UpdatedBy: {updatedBy}",
           _logger.GetCorrelationId());
@@ -278,6 +418,76 @@ namespace Calcifer.Api.Rbac.Services
       {
         await _logger.LogErrorAsync("Failed to sync role permissions", ex, _logger.GetCorrelationId());
         throw;
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // PERMISSION CHECKS
+    // ═════════════════════════════════════════════════════════════════════
+
+    public async Task<bool> HasPermissionAsync(string userId, string module, string resource, string action, CancellationToken ct = default)
+    {
+      try
+      {
+        var perms = await GetUserEffectivePermissionsAsync(userId, ct);
+        var key = $"{module}:{resource}:{action}";
+
+        return perms.Contains(key)
+          || perms.Contains($"{module}:*:*")
+          || perms.Contains("*:*:*");
+      }
+      catch (Exception ex)
+      {
+        await _logger.LogErrorAsync($"Failed permission check for user {userId}: {module}:{resource}:{action}", ex, _logger.GetCorrelationId());
+        return false;
+      }
+    }
+
+    public async Task<IReadOnlySet<string>> GetUserEffectivePermissionsAsync(string userId, CancellationToken ct = default)
+    {
+      try
+      {
+        var now = DateTime.UtcNow;
+
+        // Step 1: Get active role IDs from UserUnitRoles
+        var roleIds = await _dbContext.UserUnitRoles
+          .Where(uur => uur.UserId == userId
+                     && !uur.IsDeleted
+                     && (uur.ValidTo == null || uur.ValidTo > now))
+          .Select(uur => uur.RoleId)
+          .Distinct()
+          .ToListAsync(ct);
+
+        // Step 2: Get permissions from those roles
+        var roleKeys = await _dbContext.RolePermissions
+          .Where(rp => roleIds.Contains(rp.RoleId) && !rp.IsDeleted)
+          .Include(rp => rp.Permission)
+          .Select(rp => $"{rp.Permission.Module}:{rp.Permission.Resource}:{rp.Permission.Action}")
+          .ToListAsync(ct);
+
+        var permSet = new HashSet<string>(roleKeys);
+
+        // Step 3: Apply direct overrides
+        var overrides = await _dbContext.UserDirectPermissions
+          .Where(udp => udp.UserId == userId
+                     && !udp.IsDeleted
+                     && (udp.ExpiresAt == null || udp.ExpiresAt > now))
+          .Include(udp => udp.Permission)
+          .ToListAsync(ct);
+
+        foreach (var o in overrides)
+        {
+          var key = $"{o.Permission.Module}:{o.Permission.Resource}:{o.Permission.Action}";
+          if (o.IsGranted) permSet.Add(key);
+          else permSet.Remove(key);
+        }
+
+        return permSet;
+      }
+      catch (Exception ex)
+      {
+        await _logger.LogErrorAsync($"Failed to get effective permissions for user {userId}", ex, _logger.GetCorrelationId());
+        return new HashSet<string>();
       }
     }
   }

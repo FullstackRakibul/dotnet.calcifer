@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Calcifer.Api.Rbac.DTOs
 {
@@ -113,7 +113,9 @@ namespace Calcifer.Api.Rbac.DTOs
 		string? Name,
 		string? Code,
 		string? Level,
-		int? ParentId
+		int? ParentId,
+		string? Description,
+		bool? IsActive
 	);
 
 	// ════════════════════════════════════════════════════════════════════════

@@ -43,6 +43,7 @@ namespace Calcifer.Api.DbContexts
 		public DbSet<UserDirectPermission> UserDirectPermissions { get; set; }
 		public DbSet<PermissionCache> PermissionCache { get; set; }
 		public DbSet<AuditLog> AuditLogs { get; set; }
+		public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
 
 
 		protected override void OnModelCreating(ModelBuilder builder)
@@ -59,6 +60,19 @@ namespace Calcifer.Api.DbContexts
 			// Override with .IgnoreQueryFilters() when you need to see them.
 			builder.Entity<ApplicationUser>()
 				.HasQueryFilter(u => !u.IsDeleted);
+
+			builder.Entity<ApplicationUser>()
+				.HasOne(u => u.BaseUnit)
+				.WithMany()
+				.HasForeignKey(u => u.BaseUnitId)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			// ── UserRefreshToken ────────────────────────────────
+			builder.Entity<UserRefreshToken>()
+				.HasOne(rt => rt.User)
+				.WithMany(u => u.RefreshTokens)
+				.HasForeignKey(rt => rt.UserId)
+				.OnDelete(DeleteBehavior.Cascade);
 
 			// ── Licensing ────────────────────────────────────────
 			builder.Entity<License>()
@@ -126,7 +140,7 @@ namespace Calcifer.Api.DbContexts
 
 			builder.Entity<UserUnitRole>()
 				.HasOne(uur => uur.Role)
-				.WithMany()
+				.WithMany(r => r.Users)
 				.HasForeignKey(uur => uur.RoleId)
 				.OnDelete(DeleteBehavior.Restrict); // don't cascade-delete role assignments
 

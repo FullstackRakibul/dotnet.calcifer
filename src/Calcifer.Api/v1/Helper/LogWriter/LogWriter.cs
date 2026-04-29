@@ -43,7 +43,7 @@ namespace Calcifer.Api.Helper.LogWriter
     private readonly string _baseDirectory;
     private string _currentCorrelationId;
 
-    public DynamicLogWriter(string baseDirectory = null)
+    public DynamicLogWriter(string? baseDirectory = null)
     {
       _baseDirectory = baseDirectory ?? AppDomain.CurrentDomain.BaseDirectory;
       _logDirectory = Path.Combine(_baseDirectory, "logs");

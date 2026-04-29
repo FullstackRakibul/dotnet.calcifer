@@ -31,7 +31,23 @@ namespace Calcifer.Api.Rbac.Repositories
         .OrderByDescending(al => al.Timestamp)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
-        .Select(al => MapToDto(al))
+        .Select(al => new AuditLogDto(
+          al.Id.ToString(),           // Id
+          al.Timestamp,               // Timestamp
+          al.UserId,                  // UserId
+          al.UserName ?? "",          // UserName
+          al.UserEmail ?? "",         // UserEmail
+          al.Action ?? "",            // Action
+          al.Module ?? "",            // Module
+          al.Resource ?? "",          // Resource
+          al.ResourceId,              // ResourceId
+          al.Details ?? "",           // Details
+          al.Status ?? "unknown",     // Status
+          al.IpAddress ?? "",         // IpAddress
+          null,                       // Location
+          al.OldValue,                // OldValue
+          al.NewValue                 // NewValue
+        ))
         .ToListAsync();
 
       return new PaginatedResponse<AuditLogDto>(
@@ -57,7 +73,23 @@ namespace Calcifer.Api.Rbac.Repositories
 
       var items = await query
         .OrderByDescending(al => al.Timestamp)
-        .Select(al => MapToDto(al))
+        .Select(al => new AuditLogDto(
+          al.Id.ToString(),           // Id
+          al.Timestamp,               // Timestamp
+          al.UserId,                  // UserId
+          al.UserName ?? "",          // UserName
+          al.UserEmail ?? "",         // UserEmail
+          al.Action ?? "",            // Action
+          al.Module ?? "",            // Module
+          al.Resource ?? "",          // Resource
+          al.ResourceId,              // ResourceId
+          al.Details ?? "",           // Details
+          al.Status ?? "unknown",     // Status
+          al.IpAddress ?? "",         // IpAddress
+          null,                       // Location
+          al.OldValue,                // OldValue
+          al.NewValue                 // NewValue
+        ))
         .ToListAsync();
 
       return items;
@@ -106,21 +138,21 @@ namespace Calcifer.Api.Rbac.Repositories
     private AuditLogDto MapToDto(AuditLog auditLog)
     {
       return new AuditLogDto(
-        Id: auditLog.Id.ToString(),
-        Timestamp: auditLog.Timestamp,
-        UserId: auditLog.UserId,
-        UserName: auditLog.UserName ?? "",
-        UserEmail: auditLog.UserEmail ?? "",
-        Action: auditLog.Action ?? "",
-        Module: auditLog.Module ?? "",
-        Resource: auditLog.Resource ?? "",
-        ResourceId: auditLog.ResourceId,
-        Details: auditLog.Details ?? "",
-        Status: auditLog.Status ?? "unknown",
-        IpAddress: auditLog.IpAddress ?? "",
-        Location: null,
-        OldValue: auditLog.OldValue,
-        NewValue: auditLog.NewValue
+        auditLog.Id.ToString(),
+        auditLog.Timestamp,
+        auditLog.UserId,
+        auditLog.UserName ?? "",
+        auditLog.UserEmail ?? "",
+        auditLog.Action ?? "",
+        auditLog.Module ?? "",
+        auditLog.Resource ?? "",
+        auditLog.ResourceId,
+        auditLog.Details ?? "",
+        auditLog.Status ?? "unknown",
+        auditLog.IpAddress ?? "",
+        null,
+        auditLog.OldValue,
+        auditLog.NewValue
       );
     }
   }

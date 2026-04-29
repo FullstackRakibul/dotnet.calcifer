@@ -1,6 +1,5 @@
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DbContexts.Common;
 using Calcifer.Api.Rbac.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,15 +21,14 @@ namespace Calcifer.Api.Rbac.Repositories
     public async Task<List<AdminUserDto>> GetAllUsersAsync()
     {
       var users = await _dbContext.Users
-        .Where(u => u.Status != CommonStatus.Deleted)
+        .Where(u => !u.IsDeleted)
         .Include(u => u.BaseUnit)
-        .Include(u => u.UserRoles)
+        .Include(u => u.Status)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Role)
-        .Include(u => u.UserUnitRoles)
-          .ThenInclude(ur => ur.Role)
-        .Include(u => u.UserUnitRoles)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Unit)
-        .Include(u => u.UserDirectPermissions)
+        .Include(u => u.DirectPermissions)
           .ThenInclude(udp => udp.Permission)
         .ToListAsync();
 
@@ -40,13 +38,14 @@ namespace Calcifer.Api.Rbac.Repositories
     public async Task<AdminUserDto?> GetUserByIdAsync(string userId)
     {
       var user = await _dbContext.Users
-        .Where(u => u.Id == userId && u.Status != CommonStatus.Deleted)
+        .Where(u => u.Id == userId && !u.IsDeleted)
         .Include(u => u.BaseUnit)
-        .Include(u => u.UserUnitRoles)
+        .Include(u => u.Status)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Role)
-        .Include(u => u.UserUnitRoles)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Unit)
-        .Include(u => u.UserDirectPermissions)
+        .Include(u => u.DirectPermissions)
           .ThenInclude(udp => udp.Permission)
         .FirstOrDefaultAsync();
 
@@ -56,27 +55,28 @@ namespace Calcifer.Api.Rbac.Repositories
     public async Task<int> GetActiveUsersCountAsync()
     {
       return await _dbContext.Users
-        .Where(u => u.Status == CommonStatus.Active)
+        .Where(u => !u.IsDeleted && u.StatusId == 1)
         .CountAsync();
     }
 
     public async Task<int> GetTotalUsersCountAsync()
     {
       return await _dbContext.Users
-        .Where(u => u.Status != CommonStatus.Deleted)
+        .Where(u => !u.IsDeleted)
         .CountAsync();
     }
 
     public async Task<PaginatedResponse<AdminUserDto>> SearchUsersAsync(string? search, int page = 1, int pageSize = 20)
     {
       var query = _dbContext.Users
-        .Where(u => u.Status != CommonStatus.Deleted)
+        .Where(u => !u.IsDeleted)
         .Include(u => u.BaseUnit)
-        .Include(u => u.UserUnitRoles)
+        .Include(u => u.Status)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Role)
-        .Include(u => u.UserUnitRoles)
+        .Include(u => u.UnitRoles)
           .ThenInclude(ur => ur.Unit)
-        .Include(u => u.UserDirectPermissions)
+        .Include(u => u.DirectPermissions)
           .ThenInclude(udp => udp.Permission)
         .AsQueryable();
 
@@ -87,8 +87,8 @@ namespace Calcifer.Api.Rbac.Repositories
         query = query.Where(u =>
           u.FirstName.ToLower().Contains(searchLower) ||
           u.LastName.ToLower().Contains(searchLower) ||
-          u.Email.ToLower().Contains(searchLower) ||
-          u.Department.ToLower().Contains(searchLower)
+          (u.Email != null && u.Email.ToLower().Contains(searchLower)) ||
+          (u.Department != null && u.Department.ToLower().Contains(searchLower))
         );
       }
 
@@ -120,7 +120,8 @@ namespace Calcifer.Api.Rbac.Repositories
     private AdminUserDto MapToAdminUserDto(ApplicationUser user)
     {
       var unitRoles = user.UnitRoles?
-        .Where(ur => ur.ValidFrom == null || ur.ValidFrom <= DateTime.UtcNow &&
+        .Where(ur => !ur.IsDeleted &&
+               (ur.ValidFrom == null || ur.ValidFrom <= DateTime.UtcNow) &&
                (ur.ValidTo == null || ur.ValidTo >= DateTime.UtcNow))
         .Select(ur => new UserUnitRoleDto(
           UserId: ur.UserId,
@@ -136,7 +137,8 @@ namespace Calcifer.Api.Rbac.Repositories
         .ToList() ?? new List<UserUnitRoleDto>();
 
       var directPermissions = user.DirectPermissions?
-        .Where(udp => udp.ExpiresAt == null || udp.ExpiresAt >= DateTime.UtcNow)
+        .Where(udp => !udp.IsDeleted &&
+               (udp.ExpiresAt == null || udp.ExpiresAt >= DateTime.UtcNow))
         .Select(udp => new DirectPermissionDto(
           UserId: udp.UserId,
           PermissionId: udp.PermissionId,
@@ -149,6 +151,9 @@ namespace Calcifer.Api.Rbac.Repositories
         ))
         .ToList() ?? new List<DirectPermissionDto>();
 
+      // Resolve status name from CommonStatus FK
+      var statusName = user.Status?.StatusName?.ToLower() ?? "active";
+
       return new AdminUserDto(
         Id: user.Id,
         FirstName: user.FirstName ?? "",
@@ -158,7 +163,7 @@ namespace Calcifer.Api.Rbac.Repositories
         Department: user.Department,
         BaseUnitId: user.BaseUnitId,
         BaseUnitName: user.BaseUnit?.Name,
-        Status: user.Status?.ToString() ?? "active",
+        Status: statusName,
         JoinedDate: user.CreatedAt,
         LastLogin: user.LastLogin,
         AvatarUrl: null,

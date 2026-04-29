@@ -2,6 +2,7 @@ using Calcifer.Api.DbContexts;
 using Calcifer.Api.Helper.LogWriter;
 using Calcifer.Api.Rbac.DTOs;
 using Calcifer.Api.Rbac.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Calcifer.Api.Rbac.Services
 {

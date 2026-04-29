@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  RbacExtensions.cs
 //
 //  Extension methods for:
@@ -90,7 +90,7 @@ namespace Calcifer.Api.Rbac.Extensions
 			Func<T, (string Module, string Resource, string Action)> permissionSelector,
 			CancellationToken ct = default)
 		{
-			var allPerms = await rbac.SyncRolePermissionsAsync(userId, ct);
+			var allPerms = await rbac.GetUserEffectivePermissionsAsync(userId, ct);
 			return items.Where(item =>
 			{
 				var (module, resource, action) = permissionSelector(item);

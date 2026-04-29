@@ -20,7 +20,25 @@ namespace Calcifer.Api.DbContexts.AuthModels
 		public string Name { get; set; } = string.Empty;
 
 		[MaxLength(100)]
+		public string FirstName { get; set; } = string.Empty;
+
+		[MaxLength(100)]
+		public string LastName { get; set; } = string.Empty;
+
+		[MaxLength(100)]
+		public string? Department { get; set; }
+
+		[MaxLength(100)]
 		public string? Region { get; set; }
+
+		// ── Base organization unit ──────────────────────────────
+		public int? BaseUnitId { get; set; }
+
+		[ForeignKey("BaseUnitId")]
+		public OrganizationUnit? BaseUnit { get; set; }
+
+		// ── Login tracking ──────────────────────────────────────
+		public DateTime? LastLogin { get; set; }
 
 		// ── Status FK → CommonStatus ─────────────────────────────
 		public int StatusId { get; set; }
@@ -42,8 +60,9 @@ namespace Calcifer.Api.DbContexts.AuthModels
 		public bool IsDeleted { get; set; } = false;
 
 		// ── RBAC navigation ──────────────────────────────────────
+		public ICollection<IdentityUserRole<string>> UserRoles { get; set; } = new List<IdentityUserRole<string>>();
 		public ICollection<UserUnitRole> UnitRoles { get; set; } = new List<UserUnitRole>();
 		public ICollection<UserDirectPermission> DirectPermissions { get; set; } = new List<UserDirectPermission>();
+		public ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
 	}
 }
-   

@@ -32,8 +32,7 @@ namespace Calcifer.Api.Middleware
 			// ── Public CRUD (existing) ────────────────────────────────────
 			api.MapPublicCrudApi();
 
-			// ── RBAC Management  (12 routes) ──────────────────────────────
-			api.RegisterRbacApis();
+
 
 			// ── Administration APIs (RBAC Admin Module) ────────────────────
 			var adminGroup = api.MapGroup("/rbac/admin");

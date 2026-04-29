@@ -1,20 +1,18 @@
 // ============================================================
-//  TokenService.cs — UPDATED
+//  TokenService.cs
 //
-//  Changes from original:
-//  - Loads resolved permission claims from IRbacService
-//  - Embeds them as "perms" claims in the JWT
-//  - Each claim value is "Module:Resource:Action"
-//  - All unit-role assignments merged into one global token
+//  Builds a JWT that carries:
+//    sub       = userId
+//    email     = user email
+//    name      = user display name
+//    emp_id    = employee ID
+//    roles     = ["HRManager", "Viewer"]           (ASP.NET role claims)
+//    perms     = ["HCM:Employee:Read", ...]        (resolved permissions)
+//    unit_role = "Factory1:HRManager"              (unit-scoped role hints)
 //
-//  Token anatomy:
-//      sub     = userId
-//      email   = user email
-//      name    = user display name
-//      emp_id  = employee ID
-//      roles   = ["HRManager", "Viewer"]           (ASP.NET role claims)
-//      perms   = ["HCM:Employee:Read", ...]        (resolved permissions)
-//      unit_roles = [{"unit":"Factory1","role":"HRManager"}, ...]
+//  Services used:
+//    IRoleManagementService → effective permissions
+//    IUserAdminService      → unit-role assignments
 // ============================================================
 
 using System.IdentityModel.Tokens.Jwt;
@@ -33,16 +31,19 @@ namespace Calcifer.Api.Services.AuthService
 	{
 		private readonly JwtSettings _jwt;
 		private readonly UserManager<ApplicationUser> _userManager;
-		private readonly IRoleManagementService _rbac;
+		private readonly IRoleManagementService _roleService;
+		private readonly IUserAdminService _userAdminService;
 
 		public TokenService(
 			IOptions<JwtSettings> jwt,
 			UserManager<ApplicationUser> userManager,
-			IRoleManagementService rbac)
+			IRoleManagementService roleService,
+			IUserAdminService userAdminService)
 		{
 			_jwt = jwt.Value;
 			_userManager = userManager;
-			_rbac = rbac;
+			_roleService = roleService;
+			_userAdminService = userAdminService;
 		}
 
 		public async Task<string> GenerateTokenAsync(ApplicationUser user)
@@ -63,7 +64,7 @@ namespace Calcifer.Api.Services.AuthService
 
 			// ── 3. Unit-role context claims ───────────────────────
 			// Tells the frontend which role the user has at each unit.
-			var unitRoles = await _rbac.GetUserUnitRolesAsync(user.Id);
+			var unitRoles = await _userAdminService.GetUserUnitRolesAsync(user.Id);
 			foreach (var ur in unitRoles.Where(ur => ur.IsActive))
 			{
 				claims.Add(new Claim("unit_role",
@@ -73,7 +74,7 @@ namespace Calcifer.Api.Services.AuthService
 			// ── 4. Permission claims (the RBAC engine output) ─────
 			// This is the "perms" claim set. RbacAuthorizationFilter
 			// reads these at request time — no DB hit needed.
-			var permissions = await _rbac.BuildJwtPermissionClaimsAsync(user.Id);
+			var permissions = await _roleService.GetUserEffectivePermissionsAsync(user.Id);
 			claims.AddRange(permissions.Select(p => new Claim("perms", p)));
 
 			// ── 5. Sign and encode ────────────────────────────────

@@ -48,6 +48,9 @@ namespace Calcifer.Api.DependencyInversion
 			services.AddScoped<IUserReadRepository, UserReadRepository>();
 			services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
+			// ── Database seed service ────────────────────────────────────
+			services.AddScoped<DbSeedService>();
+
 			// ── Licensing engine ──────────────────────────────────────────
 			services.AddScoped<ILicenseService, LicenseService>();
 
