@@ -9,7 +9,7 @@ using Calcifer.Api.Rbac.Interfaces;
 
 namespace Calcifer.Api.Rbac.Services
 {
-	public class RbacService : IRbacService
+	public class RbacService
 	{
 		private readonly CalciferAppDbContext _db;
 		private readonly UserManager<ApplicationUser> _userMgr;
@@ -45,7 +45,7 @@ namespace Calcifer.Api.Rbac.Services
 
 			// Stale = older than 5 minutes or missing
 			var isStale = cache == null
-					   || cache.GeneratedAt < DateTime.UtcNow.AddMinutes(-5);
+						 || cache.GeneratedAt < DateTime.UtcNow.AddMinutes(-5);
 
 			if (isStale)
 			{
@@ -58,7 +58,7 @@ namespace Calcifer.Api.Rbac.Services
 			if (cache == null) return new HashSet<string>();
 
 			return JsonSerializer.Deserialize<HashSet<string>>(cache.PermissionsJson)
-				   ?? new HashSet<string>();
+					 ?? new HashSet<string>();
 		}
 
 		public async Task<bool> HasPermissionAsync(
@@ -105,8 +105,8 @@ namespace Calcifer.Api.Rbac.Services
 			// ── Step 1: active role IDs from UserUnitRoles ───────────────
 			var roleIds = await _db.UserUnitRoles
 				.Where(uur => uur.UserId == userId
-						   && !uur.IsDeleted
-						   && (uur.ValidTo == null || uur.ValidTo > now))
+							 && !uur.IsDeleted
+							 && (uur.ValidTo == null || uur.ValidTo > now))
 				.Select(uur => uur.RoleId)
 				.Distinct()
 				.ToListAsync(ct);
@@ -123,8 +123,8 @@ namespace Calcifer.Api.Rbac.Services
 			// ── Step 3: apply direct overrides ───────────────────────────
 			var overrides = await _db.UserDirectPermissions
 				.Where(udp => udp.UserId == userId
-						   && !udp.IsDeleted
-						   && (udp.ExpiresAt == null || udp.ExpiresAt > now))
+							 && !udp.IsDeleted
+							 && (udp.ExpiresAt == null || udp.ExpiresAt > now))
 				.Include(udp => udp.Permission)
 				.ToListAsync(ct);
 
@@ -174,9 +174,9 @@ namespace Calcifer.Api.Rbac.Services
 		{
 			var exists = await _db.UserUnitRoles
 				.AnyAsync(uur => uur.UserId == userId
-							  && uur.RoleId == roleId
-							  && uur.UnitId == unitId
-							  && !uur.IsDeleted, ct);
+								&& uur.RoleId == roleId
+								&& uur.UnitId == unitId
+								&& !uur.IsDeleted, ct);
 
 			if (exists) return (false, "User already has this role at this unit.");
 
@@ -226,9 +226,9 @@ namespace Calcifer.Api.Rbac.Services
 			// Remove from Identity only if no other unit still holds this role
 			var stillHolds = await _db.UserUnitRoles
 				.AnyAsync(uur => uur.UserId == userId
-							  && uur.RoleId == roleId
-							  && uur.UnitId != unitId
-							  && !uur.IsDeleted, ct);
+								&& uur.RoleId == roleId
+								&& uur.UnitId != unitId
+								&& !uur.IsDeleted, ct);
 
 			if (!stillHolds)
 			{

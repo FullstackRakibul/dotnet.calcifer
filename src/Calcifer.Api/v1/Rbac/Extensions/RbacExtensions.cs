@@ -66,7 +66,7 @@ namespace Calcifer.Api.Rbac.Extensions
 		/// Useful in service-layer code where you want to fail loudly.
 		/// </summary>
 		public static async Task RequireAsync(
-			this IRbacService rbac,
+			this IRoleManagementService rbac,
 			string userId, string module, string resource, string action,
 			CancellationToken ct = default)
 		{
@@ -84,13 +84,13 @@ namespace Calcifer.Api.Rbac.Extensions
 		/// Useful for row-level filtering where different items need different checks.
 		/// </summary>
 		public static async Task<IEnumerable<T>> FilterByPermissionAsync<T>(
-			this IRbacService rbac,
+			this IRoleManagementService rbac,
 			string userId,
 			IEnumerable<T> items,
 			Func<T, (string Module, string Resource, string Action)> permissionSelector,
 			CancellationToken ct = default)
 		{
-			var allPerms = await rbac.GetPermissionsAsync(userId, ct);
+			var allPerms = await rbac.SyncRolePermissionsAsync(userId, ct);
 			return items.Where(item =>
 			{
 				var (module, resource, action) = permissionSelector(item);

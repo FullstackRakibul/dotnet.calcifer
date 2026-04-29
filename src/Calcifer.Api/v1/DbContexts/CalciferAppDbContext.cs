@@ -11,13 +11,13 @@ using System.Security;
 
 namespace Calcifer.Api.DbContexts
 {
-    public class CalciferAppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
-    {
-        public CalciferAppDbContext(DbContextOptions<CalciferAppDbContext> options)
-            : base(options)
-        {
+	public class CalciferAppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+	{
+		public CalciferAppDbContext(DbContextOptions<CalciferAppDbContext> options)
+				: base(options)
+		{
 
-        }
+		}
 
 		// ── Common ───────────────────────────────────────────────
 		public DbSet<CommonStatus> CommonStatus { get; set; }
@@ -26,7 +26,7 @@ namespace Calcifer.Api.DbContexts
 		public DbSet<PublicData> PublicData { get; set; }
 
 		public DbSet<ApplicationUser> ApplicationUser { get; set; }
-        public DbSet<ApplicationRole> ApplicationRole { get; set; }
+		public DbSet<ApplicationRole> ApplicationRole { get; set; }
 
 		// Licensing
 		// ── Licensing ────────────────────────────────────────────
@@ -42,6 +42,7 @@ namespace Calcifer.Api.DbContexts
 		public DbSet<UserUnitRole> UserUnitRoles { get; set; }
 		public DbSet<UserDirectPermission> UserDirectPermissions { get; set; }
 		public DbSet<PermissionCache> PermissionCache { get; set; }
+		public DbSet<AuditLog> AuditLogs { get; set; }
 
 
 		protected override void OnModelCreating(ModelBuilder builder)

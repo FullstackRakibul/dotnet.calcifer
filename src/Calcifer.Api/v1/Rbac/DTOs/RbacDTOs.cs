@@ -109,12 +109,95 @@ namespace Calcifer.Api.Rbac.DTOs
 		int? ParentId
 	);
 
-	public record OrgUnitDto(
-		int Id,
-		string Name,
+	public record UpdateOrgUnitRequest(
+		string? Name,
 		string? Code,
 		string? Level,
-		int? ParentId,
-		List<OrgUnitDto> Children
+		int? ParentId
 	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  ROLE REQUEST DTOs
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record CreateRoleRequest(
+		[Required, MaxLength(256)] string Name,
+		[MaxLength(500)] string? Description
+	);
+
+	public record UpdateRoleRequest(
+		[MaxLength(256)] string? Name,
+		[MaxLength(500)] string? Description
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  USER REQUEST DTOs
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record CreateUserRequest(
+		[Required, EmailAddress] string Email,
+		[Required] string FirstName,
+		[Required] string LastName,
+		string? Phone,
+		string? Department,
+		int? BaseUnitId,
+		[Required] string Password
+	);
+
+	public record UpdateUserRequest(
+		string? FirstName,
+		string? LastName,
+		string? Phone,
+		string? Department,
+		int? BaseUnitId,
+		string? Status  // "active"|"inactive"|"locked"
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  AUDIT LOG FILTER
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record AuditLogFilter(
+		string? Search,
+		string? Module,
+		string? Action,
+		string? Status,
+		string? UserId,
+		DateTime? FromDate,
+		DateTime? ToDate
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  ACTIVE SESSION DTO
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record ActiveSessionDto(
+		string Id,
+		string UserId,
+		string UserName,
+		string UserEmail,
+		string IpAddress,
+		string? Location,
+		string? Device,
+		DateTime LoginTime,
+		DateTime? LastActivityTime,
+		bool IsActive
+	);
+
+	// ════════════════════════════════════════════════════════════════════════
+	//  SYSTEM HEALTH DTO
+	// ════════════════════════════════════════════════════════════════════════
+
+	public record SystemHealthDto(
+		bool DatabaseHealthy,
+		bool CacheHealthy,
+		string SystemUptime,
+		int ActiveUsers,
+		int ActiveSessions,
+		int TotalRequests,
+		double AverageResponseTime,
+		string LastHealthCheck,
+		Dictionary<string, object>? AdditionalMetrics
+	);
+
 }

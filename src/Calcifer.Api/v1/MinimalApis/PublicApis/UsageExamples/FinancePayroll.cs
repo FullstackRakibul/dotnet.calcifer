@@ -26,7 +26,7 @@ namespace Calcifer.Api.MinimalApis.PublicApis.UsageExamples
 			var group = app.MapGroup("/finance/payroll")
 						  .WithTags("Finance Payroll");
 
-			group.MapGet("/", async (IRbacService rbac, IPayrollService payrollService, HttpContext ctx) =>
+			group.MapGet("/", async (IRoleManagementService rbac, IPayrollService payrollService, HttpContext ctx) =>
 			{
 				var payroll = await payrollService.GetAllAsync();
 				return Results.Ok(payroll);
@@ -34,7 +34,7 @@ namespace Calcifer.Api.MinimalApis.PublicApis.UsageExamples
 			.WithMetadata(new RequirePermissionAttribute("Finance", "Payroll", "Read"))
 			.RequireAuthorization();
 
-			group.MapPost("/export", async (IRbacService rbac, IPayrollService payrollService, HttpContext ctx) =>
+			group.MapPost("/export", async (IRoleManagementService rbac, IPayrollService payrollService, HttpContext ctx) =>
 			{
 				var fileBytes = await payrollService.ExportAsync();
 				return Results.File(fileBytes, "text/csv", "payroll.csv");

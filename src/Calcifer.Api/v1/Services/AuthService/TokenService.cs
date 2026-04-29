@@ -33,12 +33,12 @@ namespace Calcifer.Api.Services.AuthService
 	{
 		private readonly JwtSettings _jwt;
 		private readonly UserManager<ApplicationUser> _userManager;
-		private readonly IRbacService _rbac;
+		private readonly IRoleManagementService _rbac;
 
 		public TokenService(
 			IOptions<JwtSettings> jwt,
 			UserManager<ApplicationUser> userManager,
-			IRbacService rbac)
+			IRoleManagementService rbac)
 		{
 			_jwt = jwt.Value;
 			_userManager = userManager;

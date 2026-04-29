@@ -38,7 +38,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			// GET /rbac/roles/{roleId}/permissions
 			group.MapGet("/roles/{roleId}/permissions", async (
 				string roleId,
-				IRbacService rbac) =>
+				IRoleManagementService rbac) =>
 			{
 				var perms = await rbac.GetRolePermissionsAsync(roleId);
 				return Results.Ok(new { status = true, data = perms });
@@ -49,7 +49,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			group.MapPost("/roles/{roleId}/permissions", async (
 				string roleId,
 				AssignRolePermissionRequest req,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -65,7 +65,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			group.MapDelete("/roles/{roleId}/permissions/{permId:int}", async (
 				string roleId,
 				int permId,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -82,7 +82,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			// GET /rbac/users/{userId}/roles
 			group.MapGet("/users/{userId}/roles", async (
 				string userId,
-				IRbacService rbac) =>
+				IRoleManagementService rbac) =>
 			{
 				var roles = await rbac.GetUserUnitRolesAsync(userId);
 				return Results.Ok(new { status = true, data = roles });
@@ -93,7 +93,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			group.MapPost("/users/{userId}/roles", async (
 				string userId,
 				AssignUnitRoleRequest req,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -112,7 +112,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 				string userId,
 				string roleId,
 				int unitId,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -130,7 +130,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			// GET /rbac/users/{userId}/permissions
 			group.MapGet("/users/{userId}/permissions", async (
 				string userId,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				UserManager<ApplicationUser> userMgr,
 				CalciferAppDbContext db) =>
 			{
@@ -180,7 +180,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			group.MapPost("/users/{userId}/direct-permissions", async (
 				string userId,
 				SetDirectPermissionRequest req,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -198,7 +198,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			group.MapDelete("/users/{userId}/direct-permissions/{permId:int}", async (
 				string userId,
 				int permId,
-				IRbacService rbac,
+				IRoleManagementService rbac,
 				HttpContext ctx) =>
 			{
 				var actorId = ctx.User.FindFirst("ID")?.Value ?? "system";
@@ -215,7 +215,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			// POST /rbac/users/{userId}/cache/invalidate
 			group.MapPost("/users/{userId}/cache/invalidate", async (
 				string userId,
-				IRbacService rbac) =>
+				IRoleManagementService rbac) =>
 			{
 				await rbac.InvalidateCacheAsync(userId);
 				return Results.Ok(new
@@ -229,7 +229,7 @@ namespace Calcifer.Api.Rbac.MinimalApis
 			// POST /rbac/users/{userId}/cache/recompute
 			group.MapPost("/users/{userId}/cache/recompute", async (
 				string userId,
-				IRbacService rbac) =>
+				IRoleManagementService rbac) =>
 			{
 				await rbac.RecomputeCacheAsync(userId);
 				return Results.Ok(new

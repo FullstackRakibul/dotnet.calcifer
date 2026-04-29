@@ -15,6 +15,7 @@ using System.Text;
 using Calcifer.Api.MinimalApis.PublicApis.UsageExamples;
 using Calcifer.Api.Rbac.Interfaces;
 using Calcifer.Api.Rbac.Services;
+using Calcifer.Api.Rbac.Repositories;
 using Calcifer.Api.Helper.LogWriter;
 
 namespace Calcifer.Api.DependencyInversion
@@ -32,7 +33,20 @@ namespace Calcifer.Api.DependencyInversion
 			services.AddScoped<RoleService>();
 
 			// ── RBAC engine ───────────────────────────────────────────────
-			services.AddScoped<IRbacService, RbacService>();
+			// RbacService for permission resolution (core RBAC logic)
+			services.AddScoped<RbacService>();
+
+			// RoleManagementService for admin CRUD operations on roles
+			services.AddScoped<IRoleManagementService, RoleManagementService>();
+			services.AddScoped<IUserAdminService, UserAdminService>();
+			services.AddScoped<IOrganizationUnitService, OrganizationUnitService>();
+			services.AddScoped<IAuditLogService, AuditLogService>();
+			services.AddScoped<IActiveSessionService, ActiveSessionService>();
+			services.AddScoped<ISystemStatusService, SystemStatusService>();
+
+			// ── Read repositories (for complex queries) ────────────────────
+			services.AddScoped<IUserReadRepository, UserReadRepository>();
+			services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
 			// ── Licensing engine ──────────────────────────────────────────
 			services.AddScoped<ILicenseService, LicenseService>();
