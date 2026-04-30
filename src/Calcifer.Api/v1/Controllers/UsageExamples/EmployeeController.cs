@@ -1,5 +1,5 @@
 using Calcifer.Api.AuthHandler.Filters;
-using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -10,9 +10,9 @@ namespace Calcifer.Api.Controllers.UsageExamples
 	public class EmployeeController : ControllerBase
 	{
 		private readonly IEmployeeService _service;
-		private readonly IRbacService _rbac;
+		private readonly IRoleManagementService _rbac;
 
-		public EmployeeController(IEmployeeService service, IRbacService rbac)
+		public EmployeeController(IEmployeeService service, IRoleManagementService rbac)
 		{
 			_service = service;
 			_rbac = rbac;

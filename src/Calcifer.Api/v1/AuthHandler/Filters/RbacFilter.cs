@@ -1,5 +1,4 @@
-
-using Calcifer.Api.Interface.Rbac;
+using Calcifer.Api.Rbac.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -38,9 +37,9 @@ namespace Calcifer.Api.AuthHandler.Filters
 	// ════════════════════════════════════════════════════════════════════════
 	public sealed class RbacAuthorizationFilter : IAsyncAuthorizationFilter
 	{
-		private readonly IRbacService _rbac;
+		private readonly IRoleManagementService _rbac;
 
-		public RbacAuthorizationFilter(IRbacService rbac) => _rbac = rbac;
+		public RbacAuthorizationFilter(IRoleManagementService rbac) => _rbac = rbac;
 
 		public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
 		{
@@ -178,7 +177,7 @@ namespace Calcifer.Api.AuthHandler.Filters
 			else
 			{
 				// Slow path: DB query via IRbacService
-				var rbac = httpContext.RequestServices.GetRequiredService<IRbacService>();
+				var rbac = httpContext.RequestServices.GetRequiredService<IRoleManagementService>();
 				allowed = await rbac.HasPermissionAsync(userId, _module, _resource, _action);
 			}
 

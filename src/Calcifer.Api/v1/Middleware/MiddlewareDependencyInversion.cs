@@ -1,8 +1,9 @@
 using Calcifer.Api.AuthHandler.Filters;
 using Calcifer.Api.AuthHandler.MinimalApis;
-using Calcifer.Api.DbContexts.MinimalApis.PublicApis;
-using Calcifer.Api.DbContexts.MinimalApis.PublicApis.UsageExamples;
-using Calcifer.Api.DbContexts.Rbac.MinimalApis;
+using Calcifer.Api.MinimalApis.PublicApis;
+using Calcifer.Api.MinimalApis.PublicApis.UsageExamples;
+using Calcifer.Api.Rbac.MinimalApis;
+using Calcifer.Api.Helper.LogWriter;
 
 namespace Calcifer.Api.Middleware
 {
@@ -31,8 +32,12 @@ namespace Calcifer.Api.Middleware
 			// ── Public CRUD (existing) ────────────────────────────────────
 			api.MapPublicCrudApi();
 
-			// ── RBAC Management  (12 routes) ──────────────────────────────
-			api.RegisterRbacApis();
+
+
+			// ── Administration APIs (RBAC Admin Module) ────────────────────
+			var adminGroup = api.MapGroup("/rbac/admin");
+			var logger = app.Services.GetRequiredService<ILogWriter>();
+			adminGroup.RegisterAdministrationApis(logger);
 
 			// ── Future module APIs go here ────────────────────────────────
 			// api.RegisterHcmApis();

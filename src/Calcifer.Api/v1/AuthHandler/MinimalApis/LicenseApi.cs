@@ -25,7 +25,7 @@
 // ============================================================
 
 using Calcifer.Api.DbContexts.DTOs.LicenseDTO;
-using Calcifer.Api.DTOs;
+using Calcifer.Api.Helper.ApiResponse;
 using Calcifer.Api.Interface.Licensing;
 
 namespace Calcifer.Api.AuthHandler.MinimalApis

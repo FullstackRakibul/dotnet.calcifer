@@ -4,18 +4,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>0f8207fd-f267-48b6-8af4-49200dd7206f</UserSecretsId>
+    <NoWarn>$(NoWarn);CS0246</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DbContexts\Rbac\NewFolder\**" />
-    <Content Remove="DbContexts\Rbac\NewFolder\**" />
-    <EmbeddedResource Remove="DbContexts\Rbac\NewFolder\**" />
-    <None Remove="DbContexts\Rbac\NewFolder\**" />
+    <Compile Remove="Rbac\NewFolder\**" />
+    <Content Remove="Rbac\NewFolder\**" />
+    <EmbeddedResource Remove="Rbac\NewFolder\**" />
+    <None Remove="Rbac\NewFolder\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.1">
@@ -28,7 +32,7 @@
   <ItemGroup>
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Models\Seeders\" />
-    <Folder Include="Migrations\" />
+    <Folder Include="MinimalApis\AdministrationApis\" />
     <Folder Include="Services\Common\" />
   </ItemGroup>
 

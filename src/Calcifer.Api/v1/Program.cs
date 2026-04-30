@@ -67,19 +67,14 @@ builder.Services.AddSingleton<IConfiguration>(configuration);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("MyAllowSpecificOrigins",
-        builder =>
-        {
-            builder.WithOrigins(
-                    "http://localhost:4200",
-                    "https://weavo-go.vercel.app",
-					"http://10.10.60.156:4200",
-                    "*"
-				)
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
-        });
+    options.AddPolicy("MyAllowSpecificOrigins", policy =>
+    {
+        var allowedOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
@@ -92,17 +87,17 @@ app.UseAuthorization();
 // Seed database
 using (var scope = app.Services.CreateScope())
 {
-	var services = scope.ServiceProvider;
-	try
-	{
-		//var context = services.GetRequiredService<CalciferAppDbContext>();
-		await DatabaseInitializer.SeedAsync(services);
-	}
-	catch (Exception ex)
-	{
-		var logger = services.GetRequiredService<ILogger<Program>>();
-		logger.LogError(ex, "An error occurred while seeding the database.");
-	}
+    var services = scope.ServiceProvider;
+    try
+    {
+        //var context = services.GetRequiredService<CalciferAppDbContext>();
+        await DatabaseInitializer.SeedAsync(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
 }
 
 // Configure the HTTP request pipeline.

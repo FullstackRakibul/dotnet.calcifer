@@ -13,9 +13,9 @@
 using Calcifer.Api.DbContexts;
 using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DbContexts.Common;
-using Calcifer.Api.DbContexts.Rbac.Entities;
-using Calcifer.Api.DbContexts.Rbac.Enums;
-using Calcifer.Api.DbContexts.Rbac.Seeds;
+using Calcifer.Api.Rbac.Entities;
+using Calcifer.Api.Rbac.Enums;
+using Calcifer.Api.Rbac.Seeds;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
