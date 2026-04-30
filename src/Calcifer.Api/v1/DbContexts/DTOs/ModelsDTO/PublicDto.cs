@@ -1,4 +1,4 @@
-namespace Calcifer.Api.DTOs.ModelsDTO
+namespace Calcifer.Api.DbContexts.DTOs.ModelsDTO
 {
     public class PublicDto
     {

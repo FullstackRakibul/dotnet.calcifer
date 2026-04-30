@@ -1,4 +1,4 @@
-namespace Calcifer.Api.DTOs.Common
+namespace Calcifer.Api.DbContexts.DTOs.CommonDTO
 {
     public class CommonStatusResponseDto
     {

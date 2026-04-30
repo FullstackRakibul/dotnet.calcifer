@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Calcifer.Api.DbContexts.AuthModels;
-using Calcifer.Api.DTOs.AuthDTO;
 using Calcifer.Api.Services.AuthService;
+using Calcifer.Api.DbContexts.DTOs.AuthDTO;
 
-namespace Calcifer.Api.Controllers.AuthController
+namespace Calcifer.Api.AuthHandler.AuthController
 {
 	[Route("api/v1/Controllers/[controller]")]
 	[ApiController]

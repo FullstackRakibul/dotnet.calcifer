@@ -1,4 +1,4 @@
-namespace Calcifer.Api.DTOs
+namespace Calcifer.Api.DbContexts.DTOs
 {
     public class PublicDataDTO
     {

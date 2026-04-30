@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Calcifer.Api.DTOs.AuthDTO;
 using Calcifer.Api.Services.AuthService;
+using Calcifer.Api.DbContexts.DTOs.AuthDTO;
 
-namespace Calcifer.Api.Controllers.AuthController
+namespace Calcifer.Api.AuthHandler.AuthController
 {
 	/// <summary>
 	/// Manages ASP.NET Identity roles (create, assign to user).

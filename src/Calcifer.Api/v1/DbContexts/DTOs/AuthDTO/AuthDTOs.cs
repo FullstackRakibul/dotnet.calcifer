@@ -8,7 +8,7 @@
 //    - AssignRoleRequestDto → AssignRoleRequestDto.cs
 // ============================================================
 
-namespace Calcifer.Api.DTOs.AuthDTO
+namespace Calcifer.Api.DbContexts.DTOs.AuthDTO
 {
     // ── Login response ───────────────────────────────────────────
 

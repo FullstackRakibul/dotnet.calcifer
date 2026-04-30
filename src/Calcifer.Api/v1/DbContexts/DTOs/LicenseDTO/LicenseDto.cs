@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Calcifer.Api.DTOs.LicenseDTO
+namespace Calcifer.Api.DbContexts.DTOs.LicenseDTO
 {
 	public record LicenseResponseDto(
 		int Id,

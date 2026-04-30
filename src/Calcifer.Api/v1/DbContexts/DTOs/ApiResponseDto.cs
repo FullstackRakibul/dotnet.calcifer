@@ -8,7 +8,7 @@
 //  Failure:  { status: false, message: "Error reason",  data: null }
 // ============================================================
 
-namespace Calcifer.Api.DTOs
+namespace Calcifer.Api.DbContexts.DTOs
 {
     public class ApiResponseDto<T>
     {

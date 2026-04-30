@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Calcifer.Api.DTOs.AuthDTO
+namespace Calcifer.Api.DbContexts.DTOs.AuthDTO
 {
     public class RegisterRequestDto
     {

@@ -1,4 +1,4 @@
-﻿using Calcifer.Api.DTOs.Common;
+﻿using Calcifer.Api.DbContexts.DTOs.CommonDTO;
 using Microsoft.EntityFrameworkCore;
 
 namespace Calcifer.Api.DbContexts.MinimalApis.PublicApis
