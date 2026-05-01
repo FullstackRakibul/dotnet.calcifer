@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Calcifer.Api.Migrations
 {
     [DbContext(typeof(CalciferAppDbContext))]
-    [Migration("20260429195714_Initial")]
-    partial class Initial
+    [Migration("20260430082051_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -8,11 +8,8 @@
 //  Failure:  { status: false, message: "Error reason",  data: null }
 // ============================================================
 
-<<<<<<<< HEAD:src/Calcifer.Api/v1/DbContexts/DTOs/ApiResponseDto.cs
-namespace Calcifer.Api.DbContexts.DTOs
-========
 namespace Calcifer.Api.Helper.ApiResponse
->>>>>>>> 9d00b792c7281f646793066724681481d3bdd268:src/Calcifer.Api/v1/Helper/ApiResponse/ApiResponseDto.cs
+
 {
     public class ApiResponseDto<T>
     {
