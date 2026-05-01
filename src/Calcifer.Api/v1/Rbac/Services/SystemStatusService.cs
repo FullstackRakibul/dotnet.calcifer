@@ -61,7 +61,8 @@ namespace Calcifer.Api.Rbac.Services
           AdditionalMetrics: metrics
         );
 
-        return status;
+
+		return status;
       }
       catch (Exception ex)
       {

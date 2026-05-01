@@ -35,7 +35,7 @@ namespace Calcifer.Api.Middleware
 
 
 			// ── Administration APIs (RBAC Admin Module) ────────────────────
-			var adminGroup = api.MapGroup("/rbac/admin");
+			var adminGroup = api.MapGroup("/rbac/administration");
 			var logger = app.Services.GetRequiredService<ILogWriter>();
 			adminGroup.RegisterAdministrationApis(logger);
 

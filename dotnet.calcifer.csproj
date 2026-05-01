@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>Calcifer.Microservice.Api.Template</PackageId>
-    <Version>1.1.1-alpha.1</Version>
+    <Version>2.1.1-alpha.2</Version>
     <Title>Calcifer Secure Microservice API Template (beta)</Title>
     <Authors>Rakibul Hasan Rabbi</Authors>
     <Description>A production-ready .NET 8 Web API microservice template designed for enterprise software. Features built-in JWT authentication, ASP.NET Core Identity, and Role-Based Authorization. (Community Alpha Version).</Description>

@@ -33,7 +33,9 @@
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="DbContexts\Models\Seeders\" />
     <Folder Include="MinimalApis\AdministrationApis\" />
+    <Folder Include="Repositories\" />
     <Folder Include="Services\Common\" />
+    <Folder Include="Services\UsageExamples\" />
   </ItemGroup>
 
 </Project>
