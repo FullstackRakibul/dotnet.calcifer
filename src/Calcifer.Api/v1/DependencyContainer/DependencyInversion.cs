@@ -17,6 +17,7 @@ using Calcifer.Api.Rbac.Interfaces;
 using Calcifer.Api.Rbac.Services;
 using Calcifer.Api.Rbac.Repositories;
 using Calcifer.Api.Helper.LogWriter;
+using Calcifer.Api.Controllers.UsageExamples;
 
 namespace Calcifer.Api.DependencyInversion
 {
@@ -26,6 +27,7 @@ namespace Calcifer.Api.DependencyInversion
 		{
 			// ── Existing ──────────────────────────────────────────────────
 			services.AddScoped<IPublicInterface, PublicService>();
+
 
 			// ── Auth services ─────────────────────────────────────────────
 			services.AddScoped<TokenService>();

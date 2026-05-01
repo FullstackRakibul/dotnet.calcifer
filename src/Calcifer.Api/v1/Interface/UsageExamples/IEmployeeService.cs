@@ -5,7 +5,7 @@
 //  HCM module is built.
 // ============================================================
 
-namespace Calcifer.Api.Controllers.UsageExamples
+namespace Calcifer.Api.Interface.UsageExamples
 {
     public interface IEmployeeService
     {
