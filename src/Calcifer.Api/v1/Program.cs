@@ -1,12 +1,6 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts;
-using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DependencyInversion;
 using Calcifer.Api.Infrastructure;
 using Calcifer.Api.Middleware;

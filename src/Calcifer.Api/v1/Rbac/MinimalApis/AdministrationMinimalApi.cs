@@ -448,6 +448,8 @@ namespace Calcifer.Api.Rbac.MinimalApis
     private static async Task<IResult> GetSystemStatus(ISystemStatusService statusService, ILogWriter logger)
     {
       try { return Results.Ok(ApiResponse.Success(await statusService.GetSystemStatusAsync(), "System status retrieved successfully")); }
+
+	  
       catch (Exception ex) { await logger.LogErrorAsync("Failed to get system status", ex); return Results.BadRequest(ApiResponse.Error("Failed to retrieve system status")); }
     }
 
