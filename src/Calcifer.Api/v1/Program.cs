@@ -1,12 +1,6 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Calcifer.Api.AuthHandler.Configuration;
 using Calcifer.Api.DbContexts;
-using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DependencyInversion;
 using Calcifer.Api.Infrastructure;
 using Calcifer.Api.Middleware;
@@ -84,7 +78,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("MyAllowSpecificOrigins", policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
+        var allowedOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>() ?? [];
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -93,6 +87,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
 
 // ✅ Use static files (for wwwroot, logs, etc.)
 app.UseStaticFiles();
