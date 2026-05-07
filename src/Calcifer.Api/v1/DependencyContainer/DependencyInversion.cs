@@ -57,7 +57,13 @@ namespace Calcifer.Api.DependencyInversion
 			services.AddScoped<ILicenseService, LicenseService>();
 
 			// ── Dynamic Log Writer (singleton — shared across all requests) ──
-			services.AddDynamicLogWriter();
+			// ✅ FIX: Use IIS ContentRootPath for proper log directory on production
+			services.AddSingleton<ILogWriter>(sp =>
+			{
+				var hostingEnv = sp.GetRequiredService<IWebHostEnvironment>();
+				var logBaseDir = hostingEnv.ContentRootPath;  // ✅ Uses actual app directory
+				return new DynamicLogWriter(logBaseDir);
+			});
 
 			// ── Usage example stubs (replace with real implementations) ──
 			services.AddScoped<IPayrollService, StubPayrollService>();

@@ -22,13 +22,13 @@ namespace Calcifer.Api.Helper.LogWriter
 
   public class LogEntry
   {
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
     public string CorrelationId { get; set; } = Guid.NewGuid().ToString();
-    public string LogType { get; set; } // Action, Validation, Error, Response, Try, Failed
-    public string Module { get; set; }
+    public string LogType { get; set; }= string.Empty;
+    public string Module { get; set; } = string.Empty;
     public string? Endpoint { get; set; }
     public string? Method { get; set; }
-    public string Message { get; set; }
+    public string Message { get; set; } = string.Empty;
     public string? Detail { get; set; }
     public int? StatusCode { get; set; }
     public string? IpAddress { get; set; }
@@ -56,9 +56,24 @@ namespace Calcifer.Api.Helper.LogWriter
     /// </summary>
     private void EnsureLogDirectoryExists()
     {
-      if (!Directory.Exists(_logDirectory))
+      try
       {
-        Directory.CreateDirectory(_logDirectory);
+        if (!Directory.Exists(_logDirectory))
+        {
+          Directory.CreateDirectory(_logDirectory);
+        }
+      }
+      catch (UnauthorizedAccessException ex)
+      {
+        // ✅ FIX: Log to console if file write fails (for IIS debugging)
+        Console.WriteLine($"[LogWriter] WARNING: Failed to create log directory at '{_logDirectory}'");
+        Console.WriteLine($"[LogWriter] Exception: {ex.Message}");
+        Console.WriteLine($"[LogWriter] Check IIS Application Pool identity has write permissions.");
+        Console.WriteLine($"[LogWriter] Logs will not be written to file in this environment.");
+      }
+      catch (IOException ex)
+      {
+        Console.WriteLine($"[LogWriter] ERROR: I/O error creating log directory: {ex.Message}");
       }
     }
 
@@ -82,9 +97,22 @@ namespace Calcifer.Api.Helper.LogWriter
 
         await File.AppendAllTextAsync(filePath, logContent, Encoding.UTF8);
       }
+      catch (UnauthorizedAccessException ex)
+      {
+        // ✅ FIX: Log to console if file write fails
+        Console.WriteLine($"[LogWriter] PERMISSION ERROR: Cannot write to log file.");
+        Console.WriteLine($"[LogWriter] Details: {ex.Message}");
+        Console.WriteLine($"[LogWriter] Check IIS Application Pool identity permissions.");
+      }
+      catch (DirectoryNotFoundException ex)
+      {
+        // ✅ FIX: Log directory doesn't exist
+        Console.WriteLine($"[LogWriter] ERROR: Log directory not found: {_logDirectory}");
+        Console.WriteLine($"[LogWriter] Details: {ex.Message}");
+      }
       catch (Exception ex)
       {
-        // Fallback: write to console if file logging fails
+        // ✅ FIX: Fallback to console for any other logging errors
         Console.WriteLine($"[LogWriter Error] {ex.Message}");
       }
     }

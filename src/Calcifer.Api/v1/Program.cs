@@ -12,7 +12,22 @@ using Calcifer.Api.Infrastructure;
 using Calcifer.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ✅ FIX: Ensure environment-specific configuration is loaded
+builder.Configuration
+    .SetBasePath(builder.Environment.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 var configuration = builder.Configuration;
+
+// ✅ DEBUG: Log which environment and config file is being used (Development only)
+if (builder.Environment.IsDevelopment())
+{
+    System.Console.WriteLine($"[Startup] Environment: {builder.Environment.EnvironmentName}");
+    System.Console.WriteLine($"[Startup] ContentRootPath: {builder.Environment.ContentRootPath}");
+}
 
 // register services to the container.
 DependencyInversion.RegisterServices(builder.Services, configuration);
@@ -79,18 +94,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ✅ Use static files (for wwwroot, logs, etc.)
+app.UseStaticFiles();
 
+// ✅ Use routing
+app.UseRouting();
 
+// ✅ CORS before Auth
 app.UseCors("MyAllowSpecificOrigins");
+
+// ✅ Auth middleware
 app.UseAuthentication();
 app.UseAuthorization();
-// Seed database
+
+// ✅ Seed database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        //var context = services.GetRequiredService<CalciferAppDbContext>();
         await DatabaseInitializer.SeedAsync(services);
     }
     catch (Exception ex)
@@ -100,7 +122,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
+// ✅ Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -113,15 +135,19 @@ else
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    // ✅ Error handling in production
+    app.UseExceptionHandler("/error");
 }
 
-
-
-
-// Register Minimal APIs
-
-
-
+// ✅ Map all controllers and minimal APIs
 app.MapControllers();
 app.ApplicationMinimalApis();
+
+// ✅ Default fallback route (for 404s)
+app.MapFallback(context =>
+{
+    context.Response.StatusCode = StatusCodes.Status404NotFound;
+    return context.Response.WriteAsJsonAsync(new { error = "Resource not found", path = context.Request.Path });
+});
+
 app.Run();

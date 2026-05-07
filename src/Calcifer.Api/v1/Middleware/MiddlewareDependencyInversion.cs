@@ -19,31 +19,30 @@ namespace Calcifer.Api.Middleware
 
 		public static WebApplication ApplicationMinimalApis(this WebApplication app)
 		{
-
 			// ── Public routes (no auth required) ─────────────────────────
 			var publicApi = app.MapGroup("/api/v1");
+			publicApi.WithTags("Public");
 			publicApi.MapIdentityApis();  // login, register — no auth filter here
+			publicApi.RegisterCommonStatusApis();  // Common Status API (public read)
 
-
-			// Global /api/v1 group — applies AuthorizationFilter (401 guard) to all routes
+			// ── Authenticated routes (with auth filter) ──────────────────
 			var api = app.MapGroup("/api/v1")
 						 .AddEndpointFilter<AuthorizationFilter>();
 
 			// ── Public CRUD (existing) ────────────────────────────────────
 			api.MapPublicCrudApi();
 
-
-
 			// ── Administration APIs (RBAC Admin Module) ────────────────────
 			var adminGroup = api.MapGroup("/rbac/administration");
 			var logger = app.Services.GetRequiredService<ILogWriter>();
 			adminGroup.RegisterAdministrationApis(logger);
 
+			// ── Finance/Payroll APIs ────────────────────────────────────────
+			api.FinancePayrollApis();
+
 			// ── Future module APIs go here ────────────────────────────────
 			// api.RegisterHcmApis();
 			// api.RegisterInventoryApis();
-			api.FinancePayrollApis();
-
 
 			return app;
 		}

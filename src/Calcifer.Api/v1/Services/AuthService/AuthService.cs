@@ -149,7 +149,7 @@ namespace Calcifer.Api.Services.AuthService
                 var response = new LoginResponseDto
                 {
                     Token = token,
-                    ExpiresAt = DateTime.UtcNow.AddHours(1),
+                    ExpiresAt = DateTime.Now.AddHours(1),
                     UserId = user.Id,
                     Name = user.Name,
                     Email = user.Email!,
