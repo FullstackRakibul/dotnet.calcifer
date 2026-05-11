@@ -30,7 +30,7 @@ namespace Calcifer.Api.Services.AuthService
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
-            _logger = logger;07
+            _logger = logger;
         }
 
         // ── Register ─────────────────────────────────────────────
