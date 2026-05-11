@@ -67,11 +67,14 @@ StyleCopReport.xml
 # ─────────────────────────────────────────────
 # Configuration & Secrets
 #   ⚠ Never commit real connection strings,
-#     JWT secrets, or API keys.
+#     JWT secrets, or API keys to version control.
+#     Use appsettings.Example.json as template only.
 # ─────────────────────────────────────────────
 appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
 appsettings.*.json
-!appsettings.Development.json
 !appsettings.Example.json
 appsettings.user.json
 appsettings.Local.json
@@ -81,6 +84,7 @@ appsettings.Local.json
 *.pfx
 *.publishsettings
 secrets.json
+user-secrets.json
 
 # ─────────────────────────────────────────────
 # Template-Specific Ignores
@@ -89,6 +93,27 @@ secrets.json
 TestService/
 InventoryService/
 out/
+
+# ─────────────────────────────────────────────
+# Application Logs & Runtime Data
+# ─────────────────────────────────────────────
+logs/
+*.log
+*.txt.log
+*.stack
+app.log
+error.log
+stdout*
+
+# ─────────────────────────────────────────────
+# Local Development Files
+# ─────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+tempdb/
+temp/
+.claude/
 
 # ─────────────────────────────────────────────
 # OS Generated Files
