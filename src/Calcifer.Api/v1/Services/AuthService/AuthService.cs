@@ -7,6 +7,7 @@
 
 using Calcifer.Api.DbContexts.AuthModels;
 using Calcifer.Api.DbContexts.DTOs.AuthDTO;
+using Calcifer.Api.Helper.EmployeeIdGenerator;
 using Calcifer.Api.Rbac.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +30,7 @@ namespace Calcifer.Api.Services.AuthService
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
-            _logger = logger;
+            _logger = logger;07
         }
 
         // ── Register ─────────────────────────────────────────────
@@ -41,17 +42,15 @@ namespace Calcifer.Api.Services.AuthService
             if (await _userManager.FindByEmailAsync(dto.Email) != null)
                 return (false, "A user with this email already exists.", null);
 
-            // Check for duplicate EmployeeId
-            var existingEmp = _userManager.Users
-                .FirstOrDefault(u => u.EmployeeId == dto.EmployeeId);
-            if (existingEmp != null)
-                return (false, $"Employee ID '{dto.EmployeeId}' is already registered.", null);
+            // Generate unique Employee ID (format: EMP-{YYYYMMDD}-{RandomNumber})
+            string generatedEmployeeId = EmployeeIdGenerator.GenerateEmployeeId();
 
             var user = new ApplicationUser
             {
+                AppUserGuid = EmployeeIdGenerator.GenerateEmployeeIdGuidOnly(), // Optional: also generate a GUID-based ID for internal use
                 UserName = dto.Email,
                 Email = dto.Email,
-                EmployeeId = dto.EmployeeId,
+                EmployeeId = generatedEmployeeId,
                 Name = dto.Name,
                 Region = dto.Region,
                 StatusId = 1, // Active
